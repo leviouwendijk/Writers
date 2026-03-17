@@ -17,11 +17,27 @@ public func preflightSafeWrite(
     }
 
     let collisions = targets.filter(isNonBlank)
-    if !collisions.isEmpty && options.overrideExisting == false {
-        throw SafePreflightError.refusingToOverwrite(collisions)
+
+    // if !collisions.isEmpty && options.overrideExisting == false {
+    //     throw SafePreflightError.refusingToOverwrite(collisions)
+    // }
+
+    if !collisions.isEmpty {
+        switch options.existingFilePolicy {
+        case .abort:
+            throw SafePreflightError.refusingToOverwrite(collisions)
+
+        case .overwrite:
+            break
+        }
     }
 
-    guard options.overrideExisting && options.makeBackupOnOverride else { return }
+    // guard options.overrideExisting && options.makeBackupOnOverride else { return }
+
+    guard options.existingFilePolicy == .overwrite,
+          options.makeBackupOnOverride else {
+        return
+    }
 
     // Single timestamp per preflight run for nicer grouping
     // (we’ll still create one set per *directory*)

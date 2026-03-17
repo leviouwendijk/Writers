@@ -20,30 +20,66 @@ public struct SafeFile: Sendable, SafelyWritable {
 
             if fm.fileExists(atPath: url.path) {
                 let isBlank = try fileIsBlank(whitespaceCounts: options.whitespaceOnlyIsBlank)
-                if !isBlank && !options.overrideExisting { throw SafeFileError.fileExistsAndNotBlank(url) }
 
-                if !isBlank && options.overrideExisting, options.makeBackupOnOverride {
-                    overwritten = true
-                    if options.createBackupDirectory {
-                        let ts = timestampString()
-                        let setDir = try ensureBackupSetDir(options: options, timestamp: ts)
-                        let dst = setDir.appendingPathComponent(url.lastPathComponent, isDirectory: false)
-                        try? fm.removeItem(at: dst)
-                        try fm.copyItem(at: url, to: dst)
-                        backupURL = dst
-                        try pruneBackupSets(
-                            baseDir: setDir.deletingLastPathComponent(),
-                            prefix: options.backupSetPrefix,
-                            keep: options.maxBackupSets
-                        )
-                    } else {
-                        backupURL = try makeBackup(
-                            suffix: options.backupSuffix,
-                            addTimestampIfExists: options.addTimestampIfBackupExists
-                        )
+                if !isBlank {
+                    switch options.existingFilePolicy {
+                    case .abort:
+                        throw SafeFileError.fileExistsAndNotBlank(url)
+
+                    case .overwrite:
+                        overwritten = true
+
+                        if options.makeBackupOnOverride {
+                            if options.createBackupDirectory {
+                                let ts = timestampString()
+                                let setDir = try ensureBackupSetDir(options: options, timestamp: ts)
+                                let dst = setDir.appendingPathComponent(url.lastPathComponent, isDirectory: false)
+                                try? fm.removeItem(at: dst)
+                                try fm.copyItem(at: url, to: dst)
+                                backupURL = dst
+
+                                try pruneBackupSets(
+                                    baseDir: setDir.deletingLastPathComponent(),
+                                    prefix: options.backupSetPrefix,
+                                    keep: options.maxBackupSets
+                                )
+                            } else {
+                                backupURL = try makeBackup(
+                                    suffix: options.backupSuffix,
+                                    addTimestampIfExists: options.addTimestampIfBackupExists
+                                )
+                            }
+                        }
                     }
                 }
             }
+
+            // if fm.fileExists(atPath: url.path) {
+            //     let isBlank = try fileIsBlank(whitespaceCounts: options.whitespaceOnlyIsBlank)
+            //     if !isBlank && !options.overrideExisting { throw SafeFileError.fileExistsAndNotBlank(url) }
+
+            //     if !isBlank && options.overrideExisting, options.makeBackupOnOverride {
+            //         overwritten = true
+            //         if options.createBackupDirectory {
+            //             let ts = timestampString()
+            //             let setDir = try ensureBackupSetDir(options: options, timestamp: ts)
+            //             let dst = setDir.appendingPathComponent(url.lastPathComponent, isDirectory: false)
+            //             try? fm.removeItem(at: dst)
+            //             try fm.copyItem(at: url, to: dst)
+            //             backupURL = dst
+            //             try pruneBackupSets(
+            //                 baseDir: setDir.deletingLastPathComponent(),
+            //                 prefix: options.backupSetPrefix,
+            //                 keep: options.maxBackupSets
+            //             )
+            //         } else {
+            //             backupURL = try makeBackup(
+            //                 suffix: options.backupSuffix,
+            //                 addTimestampIfExists: options.addTimestampIfBackupExists
+            //             )
+            //         }
+            //     }
+            // }
 
             let writeOpts: Data.WritingOptions = options.atomic ? [.atomic] : []
             try data.write(to: url, options: writeOpts)
@@ -77,6 +113,51 @@ public struct SafeFile: Sendable, SafelyWritable {
         }
         return try write(data, options: options)
     }
+
+    @discardableResult
+    public func write(
+        _ string: String,
+        content mode: ContentOverwriteMode,
+        separator: String? = nil,
+        encoding: String.Encoding = .utf8,
+        options: SafeWriteOptions = .init()
+    ) throws -> SafeWriteResult {
+        switch mode {
+        case .replace:
+            return try write(string, encoding: encoding, options: options)
+
+        case .append:
+            let fm = FileManager.default
+            var composed = string
+
+            if fm.fileExists(atPath: url.path) {
+                let isBlank = try fileIsBlank(whitespaceCounts: options.whitespaceOnlyIsBlank)
+
+                if !isBlank {
+                    let existingData = try Data(contentsOf: url)
+
+                    guard let existing = String(data: existingData, encoding: encoding) else {
+                        throw SafeFileError.io(underlying: NSError(
+                            domain: "SafeFile",
+                            code: -2,
+                            userInfo: [NSLocalizedDescriptionKey: "Existing file string decoding failed"]
+                        ))
+                    }
+
+                    if let separator, !separator.isEmpty {
+                        composed = existing + separator + string
+                    } else {
+                        composed = existing + string
+                    }
+                }
+            }
+
+            var writeOptions = options
+            writeOptions.existingFilePolicy = .overwrite
+
+            return try write(composed, encoding: encoding, options: writeOptions)
+        }
+    }
 }
 
 // let file = SafeFile(URL(fileURLWithPath: "/path/to/output.txt"))
@@ -85,7 +166,8 @@ public struct SafeFile: Sendable, SafelyWritable {
 // try file.write("Hello\n")
 
 // // 2) Override with backup
-// var opts = SafeWriteOptions(overrideExisting: true, makeBackupOnOverride: true)
+// (deprecated): var opts = SafeWriteOptions(overrideExisting: true, makeBackupOnOverride: true)
+// (new): var opts = SafeWriteOptions(existingFilePolicy: .overwrite, makeBackupOnOverride: true)
 // try file.write("Hello new world\n", options: opts)
 
 // // 3) Show diff against backup

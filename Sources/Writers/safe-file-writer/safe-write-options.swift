@@ -1,6 +1,8 @@
 public struct SafeWriteOptions: Sendable {
-    /// If true and the file exists & is not blank, allow overwrite.
-    public var overrideExisting: Bool
+    // /// If true and the file exists & is not blank, allow overwrite.
+    // public var overrideExisting: Bool
+    public var existingFilePolicy: ExistingFilePolicy
+
     /// If overriding, also write a backup first.
     public var makeBackupOnOverride: Bool
     /// Treat whitespace-only files as "blank".
@@ -24,7 +26,40 @@ public struct SafeWriteOptions: Sendable {
     public var maxBackupSets: Int?
 
     public init(
-        overrideExisting: Bool = false,
+        existingFilePolicy: ExistingFilePolicy = .abort,
+        makeBackupOnOverride: Bool = true,
+        whitespaceOnlyIsBlank: Bool = false,
+        backupSuffix: String = "_previous_version.bak",
+        addTimestampIfBackupExists: Bool = true,
+        createIntermediateDirectories: Bool = true,
+        atomic: Bool = true,
+        createBackupDirectory: Bool = true,
+        backupDirectoryName: String = "safe-file-backups",
+        backupSetPrefix: String = "overwrite_",
+        maxBackupSets: Int? = nil
+    ) {
+        self.existingFilePolicy = existingFilePolicy
+        self.makeBackupOnOverride = makeBackupOnOverride
+        self.whitespaceOnlyIsBlank = whitespaceOnlyIsBlank
+        self.backupSuffix = backupSuffix
+        self.addTimestampIfBackupExists = addTimestampIfBackupExists
+        self.createIntermediateDirectories = createIntermediateDirectories
+        self.atomic = atomic
+        self.createBackupDirectory = createBackupDirectory
+        self.backupDirectoryName = backupDirectoryName
+        self.backupSetPrefix = backupSetPrefix
+        self.maxBackupSets = maxBackupSets
+    }
+
+    @available(*, deprecated, renamed: "existingFilePolicy")
+    public var overrideExisting: Bool {
+        get { existingFilePolicy == .overwrite }
+        set { existingFilePolicy = newValue ? .overwrite : .abort }
+    }
+
+    @available(*, deprecated, message: "Use init(existingFilePolicy:...) instead.")
+    public init(
+        overrideExisting: Bool,
         makeBackupOnOverride: Bool = true,
         whitespaceOnlyIsBlank: Bool = false,
         backupSuffix: String = "_previous_version.bak",
@@ -37,22 +72,24 @@ public struct SafeWriteOptions: Sendable {
         backupSetPrefix: String = "overwrite_",
         maxBackupSets: Int? = nil
     ) {
-        self.overrideExisting = overrideExisting
-        self.makeBackupOnOverride = makeBackupOnOverride
-        self.whitespaceOnlyIsBlank = whitespaceOnlyIsBlank
-        self.backupSuffix = backupSuffix
-        self.addTimestampIfBackupExists = addTimestampIfBackupExists
-        self.createIntermediateDirectories = createIntermediateDirectories
-        self.atomic = atomic
-
-        self.createBackupDirectory = createBackupDirectory
-        self.backupDirectoryName = backupDirectoryName
-        self.backupSetPrefix = backupSetPrefix
-        self.maxBackupSets = maxBackupSets
+        self.init(
+            existingFilePolicy: overrideExisting ? .overwrite : .abort,
+            makeBackupOnOverride: makeBackupOnOverride,
+            whitespaceOnlyIsBlank: whitespaceOnlyIsBlank,
+            backupSuffix: backupSuffix,
+            addTimestampIfBackupExists: addTimestampIfBackupExists,
+            createIntermediateDirectories: createIntermediateDirectories,
+            atomic: atomic,
+            createBackupDirectory: createBackupDirectory,
+            backupDirectoryName: backupDirectoryName,
+            backupSetPrefix: backupSetPrefix,
+            maxBackupSets: maxBackupSets
+        )
     }
 
-    public static let overwite: Self = .init(
-        overrideExisting: true,
+    public static let overwrite: Self = .init(
+        // overrideExisting: true,
+        existingFilePolicy: .overwrite,
         whitespaceOnlyIsBlank: true,
         maxBackupSets: 10
     )
