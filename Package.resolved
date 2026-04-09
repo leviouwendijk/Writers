@@ -1,0 +1,24 @@
+{
+  "originHash" : "bf6b1cc7735fd0963253e4aeb12290b5990f0e595e4c167e3c69bcda707866c8",
+  "pins" : [
+    {
+      "identity" : "ansi",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/leviouwendijk/ANSI",
+      "state" : {
+        "branch" : "master",
+        "revision" : "073d9ca7870b688a312608acf14eae6ba052c0d6"
+      }
+    },
+    {
+      "identity" : "difference",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/leviouwendijk/Difference.git",
+      "state" : {
+        "branch" : "master",
+        "revision" : "b4fa8a81c94340f38f4f003b846d507209f28dd5"
+      }
+    }
+  ],
+  "version" : 3
+}

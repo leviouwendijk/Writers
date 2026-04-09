@@ -12,11 +12,17 @@ let package = Package(
             targets: ["Writers"]
         ),
     ],
+    dependencies: [
+        .package(url: "https://github.com/leviouwendijk/Difference.git", branch: "master"),
+    ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
-            name: "Writers"
+            name: "Writers",
+            dependencies: [
+                .product(name: "Difference", package: "Difference")
+            ],
         ),
         .testTarget(
             name: "WritersTests",

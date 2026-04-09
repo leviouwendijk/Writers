@@ -1,4 +1,5 @@
 import Foundation
+import Difference
 
 public extension SafelyWritable {
     @inlinable
@@ -12,20 +13,55 @@ public extension SafelyWritable {
         backupURL: URL? = nil,
         encoding: String.Encoding = .utf8,
         backupSuffix: String = "_previous_version.bak",
-        options: SafeWriteOptions = .init()
+        options: SafeWriteOptions = .init(),
+        renderOptions: DifferenceRenderOptions = .unified
     ) throws -> String {
+        let difference = try structuredDiffAgainstBackup(
+            backupURL: backupURL,
+            encoding: encoding,
+            backupSuffix: backupSuffix,
+            options: options
+        )
+
+        return DifferenceRenderer.render(
+            difference,
+            options: renderOptions
+        )
+    }
+
+    @inlinable
+    func structuredDiffAgainstBackup(
+        backupURL: URL? = nil,
+        encoding: String.Encoding = .utf8,
+        backupSuffix: String = "_previous_version.bak",
+        options: SafeWriteOptions = .init()
+    ) throws -> TextDifference {
         let fm = FileManager.default
         var bu = backupURL ?? defaultBackupURL(suffix: backupSuffix)
-        if !fm.fileExists(atPath: bu.path), options.createBackupDirectory,
-            let setURL = latestSetBackupURL(options: options) {
-                bu = setURL
-            }
-        guard fm.fileExists(atPath: bu.path) else { throw SafeFileError.backupNotFound(bu) }
-        guard fm.fileExists(atPath: url.path) else { throw SafeFileError.nothingToRestore(url) }
+
+        if !fm.fileExists(atPath: bu.path),
+           options.createBackupDirectory,
+           let setURL = latestSetBackupURL(options: options) {
+            bu = setURL
+        }
+
+        guard fm.fileExists(atPath: bu.path) else {
+            throw SafeFileError.backupNotFound(bu)
+        }
+
+        guard fm.fileExists(atPath: url.path) else {
+            throw SafeFileError.nothingToRestore(url)
+        }
 
         let oldStr = try String(contentsOf: bu, encoding: encoding)
         let newStr = try String(contentsOf: url, encoding: encoding)
-        return makeSimpleLineDiff(old: oldStr, new: newStr, oldName: bu.lastPathComponent, newName: url.lastPathComponent)
+
+        return makeStructuredLineDiff(
+            old: oldStr,
+            new: newStr,
+            oldName: bu.lastPathComponent,
+            newName: url.lastPathComponent
+        )
     }
 
     /// Restores the backup over the current file. By default, preserves the current file
