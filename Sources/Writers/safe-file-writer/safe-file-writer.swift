@@ -1,6 +1,8 @@
 import Foundation
 
-public struct SafeFile: Sendable, SafelyWritable {
+public typealias SafeFile = StandardWriter
+
+public struct StandardWriter: Sendable, SafelyWritable {
     public let url: URL
 
     public init(
@@ -53,33 +55,6 @@ public struct SafeFile: Sendable, SafelyWritable {
                     }
                 }
             }
-
-            // if fm.fileExists(atPath: url.path) {
-            //     let isBlank = try fileIsBlank(whitespaceCounts: options.whitespaceOnlyIsBlank)
-            //     if !isBlank && !options.overrideExisting { throw SafeFileError.fileExistsAndNotBlank(url) }
-
-            //     if !isBlank && options.overrideExisting, options.makeBackupOnOverride {
-            //         overwritten = true
-            //         if options.createBackupDirectory {
-            //             let ts = timestampString()
-            //             let setDir = try ensureBackupSetDir(options: options, timestamp: ts)
-            //             let dst = setDir.appendingPathComponent(url.lastPathComponent, isDirectory: false)
-            //             try? fm.removeItem(at: dst)
-            //             try fm.copyItem(at: url, to: dst)
-            //             backupURL = dst
-            //             try pruneBackupSets(
-            //                 baseDir: setDir.deletingLastPathComponent(),
-            //                 prefix: options.backupSetPrefix,
-            //                 keep: options.maxBackupSets
-            //             )
-            //         } else {
-            //             backupURL = try makeBackup(
-            //                 suffix: options.backupSuffix,
-            //                 addTimestampIfExists: options.addTimestampIfBackupExists
-            //             )
-            //         }
-            //     }
-            // }
 
             let writeOpts: Data.WritingOptions = options.atomic ? [.atomic] : []
             try data.write(to: url, options: writeOpts)

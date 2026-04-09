@@ -1,4 +1,6 @@
-public struct SafeWriteOptions: Sendable {
+public typealias SafeWriteOptions = WriteOptions
+
+public struct WriteOptions: Sendable {
     // /// If true and the file exists & is not blank, allow overwrite.
     // public var overrideExisting: Bool
     public var existingFilePolicy: ExistingFilePolicy

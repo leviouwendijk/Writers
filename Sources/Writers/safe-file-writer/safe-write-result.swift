@@ -1,6 +1,8 @@
 import Foundation
 
-public struct SafeWriteResult: Sendable, CustomStringConvertible, CustomDebugStringConvertible {
+public typealias SafeWriteResult = WriteResult
+
+public struct WriteResult: Sendable, CustomStringConvertible, CustomDebugStringConvertible {
     public let target: URL
     public let wrote: Bool
     public let backupURL: URL?
