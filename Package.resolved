@@ -1,5 +1,5 @@
 {
-  "originHash" : "bf6b1cc7735fd0963253e4aeb12290b5990f0e595e4c167e3c69bcda707866c8",
+  "originHash" : "5e63f2baf4f98c5364780a9271d20ac8973bebd58aeda81297c8fa7feaee0257",
   "pins" : [
     {
       "identity" : "ansi",
@@ -17,6 +17,15 @@
       "state" : {
         "branch" : "master",
         "revision" : "395508c460782f6ec334c842eaef3856a628874b"
+      }
+    },
+    {
+      "identity" : "position",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/leviouwendijk/Position.git",
+      "state" : {
+        "branch" : "master",
+        "revision" : "70fd78230c3452d9a4471222d64324a2c084351d"
       }
     }
   ],
