@@ -73,15 +73,12 @@ public struct StandardWriter: Sendable, SafelyWritable {
                 )
 
                 if !isBlank {
-                    let existingData = try Data(contentsOf: url)
-
-                    guard let existing = String(data: existingData, encoding: encoding) else {
-                        throw SafeFileError.io(underlying: NSError(
-                            domain: "SafeFile",
-                            code: -2,
-                            userInfo: [NSLocalizedDescriptionKey: "Existing file string decoding failed"]
-                        ))
-                    }
+                    let existing = try standardReadText(
+                        at: url,
+                        encoding: encoding,
+                        missingFileReturnsEmpty: true,
+                        normalizeNewlines: false
+                    )
 
                     if let separator, !separator.isEmpty {
                         composed = existing + separator + string
@@ -181,16 +178,22 @@ public struct StandardWriter: Sendable, SafelyWritable {
     private func overwriteConflict(
         incomingData: Data
     ) -> SafeFileOverwriteConflict {
-        let existingData = try? Data(
-            contentsOf: url,
-            options: .uncached
+        let existingData = try? standardReadData(
+            at: url,
+            missingFileReturnsEmpty: true
         )
 
         let difference: SafeFileDifference?
 
         if let existingData,
-           let oldString = String(data: existingData, encoding: .utf8),
-           let newString = String(data: incomingData, encoding: .utf8) {
+           let oldString = String(
+               data: existingData,
+               encoding: .utf8
+           ),
+           let newString = String(
+               data: incomingData,
+               encoding: .utf8
+           ) {
             difference = makeStructuredLineDiff(
                 old: oldString,
                 new: newString,
@@ -211,9 +214,11 @@ public struct StandardWriter: Sendable, SafelyWritable {
         incomingString: String,
         encoding: String.Encoding
     ) -> SafeFileOverwriteConflict {
-        let oldString = try? String(
-            contentsOf: url,
-            encoding: encoding
+        let oldString = try? standardReadText(
+            at: url,
+            encoding: encoding,
+            missingFileReturnsEmpty: true,
+            normalizeNewlines: false
         )
 
         let difference = oldString.map {
@@ -230,6 +235,59 @@ public struct StandardWriter: Sendable, SafelyWritable {
             difference: difference
         )
     }
+
+    // private func overwriteConflict(
+    //     incomingData: Data
+    // ) -> SafeFileOverwriteConflict {
+    //     let existingData = try? Data(
+    //         contentsOf: url,
+    //         options: .uncached
+    //     )
+
+    //     let difference: SafeFileDifference?
+
+    //     if let existingData,
+    //        let oldString = String(data: existingData, encoding: .utf8),
+    //        let newString = String(data: incomingData, encoding: .utf8) {
+    //         difference = makeStructuredLineDiff(
+    //             old: oldString,
+    //             new: newString,
+    //             oldName: "\(url.lastPathComponent) (existing)",
+    //             newName: "\(url.lastPathComponent) (incoming)"
+    //         )
+    //     } else {
+    //         difference = nil
+    //     }
+
+    //     return .init(
+    //         url: url,
+    //         difference: difference
+    //     )
+    // }
+
+    // private func overwriteConflict(
+    //     incomingString: String,
+    //     encoding: String.Encoding
+    // ) -> SafeFileOverwriteConflict {
+    //     let oldString = try? String(
+    //         contentsOf: url,
+    //         encoding: encoding
+    //     )
+
+    //     let difference = oldString.map {
+    //         makeStructuredLineDiff(
+    //             old: $0,
+    //             new: incomingString,
+    //             oldName: "\(url.lastPathComponent) (existing)",
+    //             newName: "\(url.lastPathComponent) (incoming)"
+    //         )
+    //     }
+
+    //     return .init(
+    //         url: url,
+    //         difference: difference
+    //     )
+    // }
 }
 
 // public struct StandardWriter: Sendable, SafelyWritable {

@@ -38,8 +38,11 @@ public struct StandardEditor: Sendable {
         _ operations: [StandardEditOperation],
         encoding: String.Encoding = .utf8
     ) throws -> StandardEditResult {
-        let original = try currentString(
-            encoding: encoding
+        let original = try standardReadText(
+            at: url,
+            encoding: encoding,
+            missingFileReturnsEmpty: true,
+            normalizeNewlines: false
         )
 
         let edited = try apply(
@@ -100,26 +103,10 @@ public struct StandardEditor: Sendable {
         )
     }
 
-    private func currentString(
-        encoding: String.Encoding
-    ) throws -> String {
-        let fm = FileManager.default
-
-        guard fm.fileExists(atPath: url.path) else {
-            return ""
-        }
-
-        do {
-            return try String(
-                contentsOf: url,
-                encoding: encoding
-            )
-        } catch {
-            throw SafeFileError.io(
-                underlying: error
-            )
-        }
-    }
+    // private func currentString(
+    //     encoding: String.Encoding
+    // ) throws -> String {
+    // }
 
     private func makeResult(
         operations: [StandardEditOperation],

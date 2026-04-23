@@ -37,7 +37,9 @@ public extension SafelyWritable {
         options: SafeWriteOptions = .init()
     ) throws -> TextDifference {
         let fm = FileManager.default
-        var bu = backupURL ?? defaultBackupURL(suffix: backupSuffix)
+        var bu = backupURL ?? defaultBackupURL(
+            suffix: backupSuffix
+        )
 
         if !fm.fileExists(atPath: bu.path),
            options.createBackupDirectory,
@@ -46,15 +48,30 @@ public extension SafelyWritable {
         }
 
         guard fm.fileExists(atPath: bu.path) else {
-            throw SafeFileError.backupNotFound(bu)
+            throw SafeFileError.backupNotFound(
+                bu
+            )
         }
 
         guard fm.fileExists(atPath: url.path) else {
-            throw SafeFileError.nothingToRestore(url)
+            throw SafeFileError.nothingToRestore(
+                url
+            )
         }
 
-        let oldStr = try String(contentsOf: bu, encoding: encoding)
-        let newStr = try String(contentsOf: url, encoding: encoding)
+        let oldStr = try standardReadText(
+            at: bu,
+            encoding: encoding,
+            missingFileReturnsEmpty: false,
+            normalizeNewlines: false
+        )
+
+        let newStr = try standardReadText(
+            at: url,
+            encoding: encoding,
+            missingFileReturnsEmpty: false,
+            normalizeNewlines: false
+        )
 
         return makeStructuredLineDiff(
             old: oldStr,

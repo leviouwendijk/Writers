@@ -15,6 +15,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/leviouwendijk/Difference.git", branch: "master"),
         .package(url: "https://github.com/leviouwendijk/Position.git", branch: "master"),
+        .package(url: "https://github.com/leviouwendijk/Readers.git", branch: "master"),
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -24,6 +25,7 @@ let package = Package(
             dependencies: [
                 .product(name: "Difference", package: "Difference"),
                 .product(name: "Position", package: "Position"),
+                .product(name: "Readers", package: "Readers"),
             ],
         ),
         .testTarget(
