@@ -59,14 +59,14 @@ public extension SafelyWritable {
             )
         }
 
-        let oldStr = try standardReadText(
+        let oldStr = try IntegratedReader.text(
             at: bu,
             encoding: encoding,
             missingFileReturnsEmpty: false,
             normalizeNewlines: false
         )
 
-        let newStr = try standardReadText(
+        let newStr = try IntegratedReader.text(
             at: url,
             encoding: encoding,
             missingFileReturnsEmpty: false,

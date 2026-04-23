@@ -45,7 +45,7 @@ public struct StandardEditMerger: Sendable {
     public func preview(
         encoding: String.Encoding = .utf8
     ) throws -> StandardEditMergeResult {
-        let current = try standardReadText(
+        let current = try IntegratedReader.text(
             at: url,
             encoding: encoding,
             missingFileReturnsEmpty: true,

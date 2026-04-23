@@ -38,7 +38,7 @@ public struct StandardEditor: Sendable {
         _ operations: [StandardEditOperation],
         encoding: String.Encoding = .utf8
     ) throws -> StandardEditResult {
-        let original = try standardReadText(
+        let original = try IntegratedReader.text(
             at: url,
             encoding: encoding,
             missingFileReturnsEmpty: true,

@@ -73,7 +73,7 @@ public struct StandardWriter: Sendable, SafelyWritable {
                 )
 
                 if !isBlank {
-                    let existing = try standardReadText(
+                    let existing = try IntegratedReader.text(
                         at: url,
                         encoding: encoding,
                         missingFileReturnsEmpty: true,
@@ -178,7 +178,7 @@ public struct StandardWriter: Sendable, SafelyWritable {
     private func overwriteConflict(
         incomingData: Data
     ) -> SafeFileOverwriteConflict {
-        let existingData = try? standardReadData(
+        let existingData = try? IntegratedReader.data(
             at: url,
             missingFileReturnsEmpty: true
         )
@@ -214,7 +214,7 @@ public struct StandardWriter: Sendable, SafelyWritable {
         incomingString: String,
         encoding: String.Encoding
     ) -> SafeFileOverwriteConflict {
-        let oldString = try? standardReadText(
+        let oldString = try? IntegratedReader.text(
             at: url,
             encoding: encoding,
             missingFileReturnsEmpty: true,
