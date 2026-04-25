@@ -2,7 +2,7 @@ import Foundation
 import Difference
 import Position
 
-public struct StandardEditResult: Sendable {
+public struct StandardEditResult: Sendable, Codable, Hashable {
     public let target: URL
     public let operations: [StandardEditOperation]
     public let originalContent: String
