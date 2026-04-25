@@ -1,0 +1,276 @@
+{
+  "failed" : 0,
+  "failed_names" : [
+
+  ],
+  "generated_at" : "2026-04-25T14:09:41Z",
+  "passed" : 24,
+  "results" : [
+    {
+      "display_name" : "write-mutation",
+      "duration_seconds" : 0.0038930177688598633,
+      "name" : "write-mutation",
+      "status" : "passed",
+      "tags" : [
+        "mutation",
+        "snapshot",
+        "write"
+      ]
+    },
+    {
+      "display_name" : "backup-policy",
+      "duration_seconds" : 0.005221009254455566,
+      "name" : "backup-policy",
+      "status" : "passed",
+      "tags" : [
+        "backup",
+        "write"
+      ]
+    },
+    {
+      "display_name" : "backup-prune",
+      "duration_seconds" : 0.0018761157989501953,
+      "name" : "backup-prune",
+      "status" : "passed",
+      "tags" : [
+        "backup",
+        "retention"
+      ]
+    },
+    {
+      "display_name" : "backup-record-contract",
+      "duration_seconds" : 0.0058629512786865234,
+      "name" : "backup-record-contract",
+      "status" : "passed",
+      "tags" : [
+        "backup",
+        "record",
+        "restore"
+      ]
+    },
+    {
+      "display_name" : "external-backup-store",
+      "duration_seconds" : 0.002866029739379883,
+      "name" : "external-backup-store",
+      "status" : "passed",
+      "tags" : [
+        "backup",
+        "external-store",
+        "write"
+      ]
+    },
+    {
+      "display_name" : "preflight",
+      "duration_seconds" : 0.0018440485000610352,
+      "name" : "preflight",
+      "status" : "passed",
+      "tags" : [
+        "backup",
+        "preflight",
+        "write"
+      ]
+    },
+    {
+      "display_name" : "target-preflight-contract",
+      "duration_seconds" : 0.0028760433197021484,
+      "name" : "target-preflight-contract",
+      "status" : "passed",
+      "tags" : [
+        "backup",
+        "preflight"
+      ]
+    },
+    {
+      "display_name" : "write-contract",
+      "duration_seconds" : 0.0036810636520385742,
+      "name" : "write-contract",
+      "status" : "passed",
+      "tags" : [
+        "contract",
+        "plan",
+        "preflight",
+        "write"
+      ]
+    },
+    {
+      "display_name" : "write-execution-contract",
+      "duration_seconds" : 0.004320979118347168,
+      "name" : "write-execution-contract",
+      "status" : "passed",
+      "tags" : [
+        "execution",
+        "plan",
+        "write"
+      ]
+    },
+    {
+      "display_name" : "stale-plan-contract",
+      "duration_seconds" : 0.004485964775085449,
+      "name" : "stale-plan-contract",
+      "status" : "passed",
+      "tags" : [
+        "plan",
+        "stale",
+        "write"
+      ]
+    },
+    {
+      "display_name" : "overwrite-conflict",
+      "duration_seconds" : 0.0011019706726074219,
+      "name" : "overwrite-conflict",
+      "status" : "passed",
+      "tags" : [
+        "conflict",
+        "write"
+      ]
+    },
+    {
+      "display_name" : "edit-preview-and-rollback",
+      "duration_seconds" : 0.0032099485397338867,
+      "name" : "edit-preview-and-rollback",
+      "status" : "passed",
+      "tags" : [
+        "edit",
+        "preview",
+        "rollback"
+      ]
+    },
+    {
+      "display_name" : "edit-record-store",
+      "duration_seconds" : 0.0021959543228149414,
+      "name" : "edit-record-store",
+      "status" : "passed",
+      "tags" : [
+        "edit",
+        "record",
+        "rollback",
+        "store"
+      ]
+    },
+    {
+      "display_name" : "record-storage",
+      "duration_seconds" : 0.006403923034667969,
+      "name" : "record-storage",
+      "status" : "passed",
+      "tags" : [
+        "edit",
+        "mutation",
+        "record",
+        "storage"
+      ]
+    },
+    {
+      "display_name" : "payload-policy-contract",
+      "duration_seconds" : 0.0058460235595703125,
+      "name" : "payload-policy-contract",
+      "status" : "passed",
+      "tags" : [
+        "payload",
+        "storage"
+      ]
+    },
+    {
+      "display_name" : "storage-protocol-contract",
+      "duration_seconds" : 0.0034639835357666016,
+      "name" : "storage-protocol-contract",
+      "status" : "passed",
+      "tags" : [
+        "protocol",
+        "record",
+        "storage"
+      ]
+    },
+    {
+      "display_name" : "storage-location-contract",
+      "duration_seconds" : 0.0019299983978271484,
+      "name" : "storage-location-contract",
+      "status" : "passed",
+      "tags" : [
+        "backup",
+        "contract",
+        "record",
+        "storage"
+      ]
+    },
+    {
+      "display_name" : "mutation-surface-contract",
+      "duration_seconds" : 0.00010204315185546875,
+      "name" : "mutation-surface-contract",
+      "status" : "passed",
+      "tags" : [
+        "contract",
+        "metadata",
+        "mutation",
+        "surface"
+      ]
+    },
+    {
+      "display_name" : "rollback-surface-contract",
+      "duration_seconds" : 0.0032019615173339844,
+      "name" : "rollback-surface-contract",
+      "status" : "passed",
+      "tags" : [
+        "mutation",
+        "rollback",
+        "surface"
+      ]
+    },
+    {
+      "display_name" : "edit-merge",
+      "duration_seconds" : 0.002116084098815918,
+      "name" : "edit-merge",
+      "status" : "passed",
+      "tags" : [
+        "drift",
+        "edit",
+        "merge"
+      ]
+    },
+    {
+      "display_name" : "mutation-rollback",
+      "duration_seconds" : 0.0074460506439208984,
+      "name" : "mutation-rollback",
+      "status" : "passed",
+      "tags" : [
+        "guard",
+        "mutation",
+        "rollback"
+      ]
+    },
+    {
+      "display_name" : "rollback-plan-contract",
+      "duration_seconds" : 0.004027962684631348,
+      "name" : "rollback-plan-contract",
+      "status" : "passed",
+      "tags" : [
+        "mutation",
+        "plan",
+        "rollback"
+      ]
+    },
+    {
+      "display_name" : "binary-rollback-contract",
+      "duration_seconds" : 0.005540013313293457,
+      "name" : "binary-rollback-contract",
+      "status" : "passed",
+      "tags" : [
+        "binary",
+        "rollback",
+        "write"
+      ]
+    },
+    {
+      "display_name" : "mutation-snapshot",
+      "duration_seconds" : 0.0030050277709960938,
+      "name" : "mutation-snapshot",
+      "status" : "passed",
+      "tags" : [
+        "mutation",
+        "snapshot"
+      ]
+    }
+  ],
+  "skipped" : 0,
+  "title" : "Writers flow tests",
+  "total" : 24
+}

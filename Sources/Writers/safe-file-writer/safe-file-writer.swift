@@ -16,10 +16,18 @@ public struct StandardWriter: Sendable, SafelyWritable {
         _ data: Data,
         options: SafeWriteOptions = .init()
     ) throws -> SafeWriteResult {
-        try writePrepared(
+        let plan = try writePlan(
             data,
+            incomingText: nil,
+            options: options
+        )
+
+        return try plan.execution.apply(
+            writer: self,
             options: options,
-            conflict: overwriteConflict(incomingData: data)
+            conflict: overwriteConflict(
+                incomingData: data
+            )
         )
     }
 
@@ -30,15 +38,25 @@ public struct StandardWriter: Sendable, SafelyWritable {
         options: SafeWriteOptions = .init()
     ) throws -> SafeWriteResult {
         guard let data = string.data(using: encoding) else {
-            throw SafeFileError.io(underlying: NSError(
-                domain: "SafeFile",
-                code: -1,
-                userInfo: [NSLocalizedDescriptionKey: "String encoding failed"]
-            ))
+            throw SafeFileError.io(
+                underlying: NSError(
+                    domain: "SafeFile",
+                    code: -1,
+                    userInfo: [
+                        NSLocalizedDescriptionKey: "String encoding failed"
+                    ]
+                )
+            )
         }
 
-        return try writePrepared(
+        let plan = try writePlan(
             data,
+            incomingText: string,
+            options: options
+        )
+
+        return try plan.execution.apply(
+            writer: self,
             options: options,
             conflict: overwriteConflict(
                 incomingString: string,
@@ -80,7 +98,8 @@ public struct StandardWriter: Sendable, SafelyWritable {
                         normalizeNewlines: false
                     )
 
-                    if let separator, !separator.isEmpty {
+                    if let separator,
+                       !separator.isEmpty {
                         composed = existing + separator + string
                     } else {
                         composed = existing + string
@@ -100,78 +119,161 @@ public struct StandardWriter: Sendable, SafelyWritable {
     }
 
     @discardableResult
-    private func writePrepared(
-        _ data: Data,
+    public func execute(
+        _ plan: WritePlan,
         options: SafeWriteOptions,
         conflict: @autoclosure () -> SafeFileOverwriteConflict
     ) throws -> SafeWriteResult {
         do {
+            try requireExecutionTarget(
+                plan
+            )
+
+            try plan.validateCurrentState(
+                policy: options.stalePlanPolicy
+            )
+
             try ensureParentExists(
                 createIfNeeded: options.createIntermediateDirectories
             )
 
-            let fm = FileManager.default
-            var backupURL: URL? = nil
-            var overwritten = false
-
-            if fm.fileExists(atPath: url.path) {
-                let isBlank = try fileIsBlank(
-                    whitespaceCounts: options.whitespaceOnlyIsBlank
+            guard plan.canProceed else {
+                throw SafeFileError.overwriteConflict(
+                    conflict()
                 )
+            }
 
-                if !isBlank {
-                    switch options.existingFilePolicy {
-                    case .abort:
-                        throw SafeFileError.overwriteConflict(conflict())
-
-                    case .overwrite:
-                        overwritten = true
-
-                        if options.makeBackupOnOverride {
-                            if options.createBackupDirectory {
-                                let ts = timestampString()
-                                let setDir = try ensureBackupSetDir(
-                                    options: options,
-                                    timestamp: ts
-                                )
-                                let dst = setDir.appendingPathComponent(
-                                    url.lastPathComponent,
-                                    isDirectory: false
-                                )
-                                try? fm.removeItem(at: dst)
-                                try fm.copyItem(at: url, to: dst)
-                                backupURL = dst
-
-                                try pruneBackupSets(
-                                    baseDir: setDir.deletingLastPathComponent(),
-                                    prefix: options.backupSetPrefix,
-                                    keep: options.maxBackupSets
-                                )
-                            } else {
-                                backupURL = try makeBackup(
-                                    suffix: options.backupSuffix,
-                                    addTimestampIfExists: options.addTimestampIfBackupExists
-                                )
-                            }
-                        }
-                    }
-                }
+            var backupRecord: WriteBackupRecord?
+            if plan.overwriteAction.requiresBackupDecision,
+               let existingData = plan.existingData {
+                backupRecord = try makeBackupRecord(
+                    for: existingData,
+                    options: options
+                )
             }
 
             let writeOpts: Data.WritingOptions = options.atomic ? [.atomic] : []
-            try data.write(to: url, options: writeOpts)
+
+            try plan.incoming.data.write(
+                to: url,
+                options: writeOpts
+            )
 
             return .init(
                 target: url,
                 wrote: true,
-                backupURL: backupURL,
-                overwrittenExisting: overwritten,
-                bytesWritten: data.count
+                backupURL: backupRecord?.storage?.localURL,
+                overwrittenExisting: plan.overwriteAction == .overwrite_nonblank,
+                bytesWritten: plan.incoming.data.count,
+                backupRecord: backupRecord,
+                beforeSnapshot: plan.before,
+                afterSnapshot: plan.after
             )
         } catch let error as SafeFileError {
             throw error
         } catch {
-            throw SafeFileError.io(underlying: error)
+            throw SafeFileError.io(
+                underlying: error
+            )
+        }
+    }
+
+    private func requireExecutionTarget(
+        _ plan: WritePlan
+    ) throws {
+        guard plan.target.standardizedFileURL.path == url.standardizedFileURL.path else {
+            throw SafeFileError.io(
+                underlying: NSError(
+                    domain: "Writers.WriteExecution",
+                    code: -1,
+                    userInfo: [
+                        NSLocalizedDescriptionKey: "WriteExecution target mismatch. Plan target: \(plan.target.path). Writer target: \(url.path)."
+                    ]
+                )
+            )
+        }
+    }
+
+    private func makeBackupRecord(
+        for data: Data,
+        options: SafeWriteOptions
+    ) throws -> WriteBackupRecord? {
+        let policy = options.resolvedBackupPolicy
+
+        switch policy {
+        case .automatic:
+            return nil
+
+        case .disabled:
+            return nil
+
+        case .sibling_file:
+            let backupURL = try makeBackup(
+                suffix: options.backupSuffix,
+                addTimestampIfExists: options.addTimestampIfBackupExists
+            )
+
+            return .init(
+                target: url,
+                storage: .local(backupURL),
+                originalFingerprint: StandardContentFingerprint.fingerprint(
+                    for: data
+                ),
+                byteCount: data.count,
+                policy: policy
+            )
+
+        case .backup_directory:
+            let ts = timestampString()
+            let setDir = try ensureBackupSetDir(
+                options: options,
+                timestamp: ts
+            )
+            let dst = setDir.appendingPathComponent(
+                url.lastPathComponent,
+                isDirectory: false
+            )
+
+            try? FileManager.default.removeItem(
+                at: dst
+            )
+
+            try FileManager.default.copyItem(
+                at: url,
+                to: dst
+            )
+
+            try pruneBackupSets(
+                baseDir: setDir.deletingLastPathComponent(),
+                prefix: options.backupSetPrefix,
+                keep: options.maxBackupSets
+            )
+
+            return .init(
+                target: url,
+                storage: .local(dst),
+                originalFingerprint: StandardContentFingerprint.fingerprint(
+                    for: data
+                ),
+                byteCount: data.count,
+                policy: policy
+            )
+
+        case .external_store:
+            guard let backupStore = options.backupStore else {
+                throw WriteBackupStoreError.store_required(
+                    policy: policy,
+                    target: url
+                )
+            }
+
+            return try backupStore.storeBackup(
+                .init(
+                    target: url,
+                    data: data,
+                    policy: policy
+                )
+            )
         }
     }
 
@@ -187,14 +289,14 @@ public struct StandardWriter: Sendable, SafelyWritable {
 
         if let existingData,
            let oldString = String(
-               data: existingData,
-               encoding: .utf8
+                data: existingData,
+                encoding: .utf8
            ),
            let newString = String(
-               data: incomingData,
-               encoding: .utf8
+                data: incomingData,
+                encoding: .utf8
            ) {
-            difference = makeStructuredLineDiff(
+            difference = WriteDifference.lines(
                 old: oldString,
                 new: newString,
                 oldName: "\(url.lastPathComponent) (existing)",
@@ -222,7 +324,7 @@ public struct StandardWriter: Sendable, SafelyWritable {
         )
 
         let difference = oldString.map {
-            makeStructuredLineDiff(
+            WriteDifference.lines(
                 old: $0,
                 new: incomingString,
                 oldName: "\(url.lastPathComponent) (existing)",
@@ -235,193 +337,7 @@ public struct StandardWriter: Sendable, SafelyWritable {
             difference: difference
         )
     }
-
-    // private func overwriteConflict(
-    //     incomingData: Data
-    // ) -> SafeFileOverwriteConflict {
-    //     let existingData = try? Data(
-    //         contentsOf: url,
-    //         options: .uncached
-    //     )
-
-    //     let difference: SafeFileDifference?
-
-    //     if let existingData,
-    //        let oldString = String(data: existingData, encoding: .utf8),
-    //        let newString = String(data: incomingData, encoding: .utf8) {
-    //         difference = makeStructuredLineDiff(
-    //             old: oldString,
-    //             new: newString,
-    //             oldName: "\(url.lastPathComponent) (existing)",
-    //             newName: "\(url.lastPathComponent) (incoming)"
-    //         )
-    //     } else {
-    //         difference = nil
-    //     }
-
-    //     return .init(
-    //         url: url,
-    //         difference: difference
-    //     )
-    // }
-
-    // private func overwriteConflict(
-    //     incomingString: String,
-    //     encoding: String.Encoding
-    // ) -> SafeFileOverwriteConflict {
-    //     let oldString = try? String(
-    //         contentsOf: url,
-    //         encoding: encoding
-    //     )
-
-    //     let difference = oldString.map {
-    //         makeStructuredLineDiff(
-    //             old: $0,
-    //             new: incomingString,
-    //             oldName: "\(url.lastPathComponent) (existing)",
-    //             newName: "\(url.lastPathComponent) (incoming)"
-    //         )
-    //     }
-
-    //     return .init(
-    //         url: url,
-    //         difference: difference
-    //     )
-    // }
 }
-
-// public struct StandardWriter: Sendable, SafelyWritable {
-//     public let url: URL
-
-//     public init(
-//         _ url: URL
-//     ) { 
-//         self.url = url
-//     }
-
-//     @discardableResult
-//     public func write(_ data: Data, options: SafeWriteOptions = .init()) throws -> SafeWriteResult {
-//         do {
-//             try ensureParentExists(createIfNeeded: options.createIntermediateDirectories)
-
-//             let fm = FileManager.default
-//             var backupURL: URL? = nil
-//             var overwritten = false
-
-//             if fm.fileExists(atPath: url.path) {
-//                 let isBlank = try fileIsBlank(whitespaceCounts: options.whitespaceOnlyIsBlank)
-
-//                 if !isBlank {
-//                     switch options.existingFilePolicy {
-//                     case .abort:
-//                         throw SafeFileError.fileExistsAndNotBlank(url)
-
-//                     case .overwrite:
-//                         overwritten = true
-
-//                         if options.makeBackupOnOverride {
-//                             if options.createBackupDirectory {
-//                                 let ts = timestampString()
-//                                 let setDir = try ensureBackupSetDir(options: options, timestamp: ts)
-//                                 let dst = setDir.appendingPathComponent(url.lastPathComponent, isDirectory: false)
-//                                 try? fm.removeItem(at: dst)
-//                                 try fm.copyItem(at: url, to: dst)
-//                                 backupURL = dst
-
-//                                 try pruneBackupSets(
-//                                     baseDir: setDir.deletingLastPathComponent(),
-//                                     prefix: options.backupSetPrefix,
-//                                     keep: options.maxBackupSets
-//                                 )
-//                             } else {
-//                                 backupURL = try makeBackup(
-//                                     suffix: options.backupSuffix,
-//                                     addTimestampIfExists: options.addTimestampIfBackupExists
-//                                 )
-//                             }
-//                         }
-//                     }
-//                 }
-//             }
-
-//             let writeOpts: Data.WritingOptions = options.atomic ? [.atomic] : []
-//             try data.write(to: url, options: writeOpts)
-
-//             return .init(
-//                 target: url,
-//                 wrote: true,
-//                 backupURL: backupURL,
-//                 overwrittenExisting: overwritten,
-//                 bytesWritten: data.count
-//             )
-//         } catch let e as SafeFileError {
-//             throw e
-//         } catch {
-//             throw SafeFileError.io(underlying: error)
-//         }
-//     }
-
-//     @discardableResult
-//     public func write(
-//         _ string: String,
-//         encoding: String.Encoding = .utf8,
-//         options: SafeWriteOptions = .init()
-//     ) throws -> SafeWriteResult {
-//         guard let data = string.data(using: encoding) else {
-//             throw SafeFileError.io(underlying: NSError(
-//                 domain: "SafeFile",
-//                 code: -1,
-//                 userInfo: [NSLocalizedDescriptionKey: "String encoding failed"]
-//             ))
-//         }
-//         return try write(data, options: options)
-//     }
-
-//     @discardableResult
-//     public func write(
-//         _ string: String,
-//         content mode: ContentOverwriteMode,
-//         separator: String? = nil,
-//         encoding: String.Encoding = .utf8,
-//         options: SafeWriteOptions = .init()
-//     ) throws -> SafeWriteResult {
-//         switch mode {
-//         case .replace:
-//             return try write(string, encoding: encoding, options: options)
-
-//         case .append:
-//             let fm = FileManager.default
-//             var composed = string
-
-//             if fm.fileExists(atPath: url.path) {
-//                 let isBlank = try fileIsBlank(whitespaceCounts: options.whitespaceOnlyIsBlank)
-
-//                 if !isBlank {
-//                     let existingData = try Data(contentsOf: url)
-
-//                     guard let existing = String(data: existingData, encoding: encoding) else {
-//                         throw SafeFileError.io(underlying: NSError(
-//                             domain: "SafeFile",
-//                             code: -2,
-//                             userInfo: [NSLocalizedDescriptionKey: "Existing file string decoding failed"]
-//                         ))
-//                     }
-
-//                     if let separator, !separator.isEmpty {
-//                         composed = existing + separator + string
-//                     } else {
-//                         composed = existing + string
-//                     }
-//                 }
-//             }
-
-//             var writeOptions = options
-//             writeOptions.existingFilePolicy = .overwrite
-
-//             return try write(composed, encoding: encoding, options: writeOptions)
-//         }
-//     }
-// }
 
 // // let file = SafeFile(URL(fileURLWithPath: "/path/to/output.txt"))
 

@@ -19,7 +19,17 @@ public struct StandardContentFingerprint: Codable, Sendable, Hashable, CustomStr
     public static func fingerprint(
         for content: String
     ) -> Self {
-        fnv1a64(content)
+        fingerprint(
+            for: Data(content.utf8)
+        )
+    }
+
+    public static func fingerprint(
+        for data: Data
+    ) -> Self {
+        fnv1a64(
+            data
+        )
     }
 
     public static func fingerprint(
@@ -35,12 +45,12 @@ public struct StandardContentFingerprint: Codable, Sendable, Hashable, CustomStr
     }
 
     private static func fnv1a64(
-        _ string: String
+        _ bytes: Data
     ) -> Self {
         var hash: UInt64 = 14_695_981_039_346_656_037
         let prime: UInt64 = 1_099_511_628_211
 
-        for byte in string.utf8 {
+        for byte in bytes {
             hash ^= UInt64(byte)
             hash &*= prime
         }

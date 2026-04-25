@@ -86,7 +86,7 @@ public struct StandardEditMerger: Sendable {
             strategy: strategy,
             currentContent: currentContent,
             mergedContent: mergedContent,
-            difference: makeStructuredLineDiff(
+            difference: WriteDifference.lines(
                 old: currentContent,
                 new: mergedContent,
                 oldName: "\(url.lastPathComponent) (current)",
@@ -149,9 +149,9 @@ public struct StandardEditMerger: Sendable {
     private func replayAnchors(
         into currentContent: String
     ) throws -> String {
-        var lines = normalizedLines(
+        var lines = WriteTextLines(
             currentContent
-        )
+        ).lines
 
         for (offset, change) in record.changes.enumerated() {
             let changeIndex = offset + 1
@@ -398,9 +398,9 @@ public struct StandardEditMerger: Sendable {
     private func threeWayMerge(
         currentContent: String
     ) throws -> String {
-        let baseLines = normalizedLines(
+        let baseLines = WriteTextLines(
             record.base.content
-        )
+        ).lines
 
         let editedHunks = diffHunks(
             baseContent: record.base.content,
@@ -427,7 +427,7 @@ public struct StandardEditMerger: Sendable {
         baseContent: String,
         otherContent: String
     ) -> [MergeHunk] {
-        let difference = makeStructuredLineDiff(
+        let difference = WriteDifference.lines(
             old: baseContent,
             new: otherContent,
             oldName: "base",
@@ -734,23 +734,6 @@ public struct StandardEditMerger: Sendable {
         }
 
         return lhs.removedCount < rhs.removedCount
-    }
-
-    private func normalizedLines(
-        _ string: String
-    ) -> [String] {
-        guard !string.isEmpty else {
-            return []
-        }
-
-        return string
-            .replacingOccurrences(of: "\r\n", with: "\n")
-            .replacingOccurrences(of: "\r", with: "\n")
-            .split(
-                separator: "\n",
-                omittingEmptySubsequences: false
-            )
-            .map(String.init)
     }
 
     private func makeContent(

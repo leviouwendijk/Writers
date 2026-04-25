@@ -190,7 +190,7 @@ public struct StandardEditResult: Sendable {
         for ranges: [LineRange],
         in text: String
     ) -> [FileLineSlice] {
-        let lines = normalizedLines(text)
+        let lines = WriteTextLines(text).lines
 
         return ranges.map { range in
             let lowerBound = max(0, range.start - 1)
@@ -209,22 +209,5 @@ public struct StandardEditResult: Sendable {
                 lines: sliceLines
             )
         }
-    }
-
-    private func normalizedLines(
-        _ string: String
-    ) -> [String] {
-        guard !string.isEmpty else {
-            return []
-        }
-
-        return string
-            .replacingOccurrences(of: "\r\n", with: "\n")
-            .replacingOccurrences(of: "\r", with: "\n")
-            .split(
-                separator: "\n",
-                omittingEmptySubsequences: false
-            )
-            .map(String.init)
     }
 }

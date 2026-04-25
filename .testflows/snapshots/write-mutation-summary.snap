@@ -1,0 +1,23 @@
+{
+  "after" : {
+    "byteCount" : 6,
+    "fingerprintAlgorithm" : "fnv1a64",
+    "fingerprintValue" : "dbd2b03a5e921fb9",
+    "hasContent" : false,
+    "lineCount" : 2
+  },
+  "before" : {
+    "byteCount" : 7,
+    "fingerprintAlgorithm" : "fnv1a64",
+    "fingerprintValue" : "be713afc698ca7dc",
+    "hasContent" : false,
+    "lineCount" : 2
+  },
+  "hasRollbackGuard" : true,
+  "metadata" : {
+
+  },
+  "operation" : "write_text",
+  "rollbackOperationCount" : 0,
+  "target" : "sample.txt"
+}

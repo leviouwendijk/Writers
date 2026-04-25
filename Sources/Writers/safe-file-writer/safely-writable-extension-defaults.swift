@@ -73,7 +73,7 @@ public extension SafelyWritable {
             normalizeNewlines: false
         )
 
-        return makeStructuredLineDiff(
+        return WriteDifference.lines(
             old: oldStr,
             new: newStr,
             oldName: bu.lastPathComponent,

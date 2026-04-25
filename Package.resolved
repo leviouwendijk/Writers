@@ -1,5 +1,5 @@
 {
-  "originHash" : "51ac69f73a3e9cc4df16b90f953efbb6c184b9994d25844ead614e4e1ab112d8",
+  "originHash" : "91debe1a65f900bfb5694ceeb07f2beee012cd8d30fe5b0117d1f9ac52470e8c",
   "pins" : [
     {
       "identity" : "ansi",
@@ -38,12 +38,39 @@
       }
     },
     {
+      "identity" : "primitives",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/leviouwendijk/Primitives.git",
+      "state" : {
+        "branch" : "master",
+        "revision" : "8dbb4c35c168f75bac7d029286c1c587c728f3ff"
+      }
+    },
+    {
       "identity" : "readers",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/leviouwendijk/Readers.git",
       "state" : {
         "branch" : "master",
         "revision" : "9aec5eaf7cd193202bed6c09a86f180ec1e55b6b"
+      }
+    },
+    {
+      "identity" : "terminal",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/leviouwendijk/Terminal.git",
+      "state" : {
+        "branch" : "master",
+        "revision" : "d1d40273bdf557d99e5c4a767789ee662475cfd7"
+      }
+    },
+    {
+      "identity" : "testflows",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/leviouwendijk/TestFlows.git",
+      "state" : {
+        "branch" : "master",
+        "revision" : "3e594973407c1592a3244e4618af3432e6667139"
       }
     }
   ],

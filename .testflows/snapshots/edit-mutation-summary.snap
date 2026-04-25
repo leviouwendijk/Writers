@@ -1,0 +1,29 @@
+{
+  "after" : {
+    "byteCount" : 24,
+    "fingerprintAlgorithm" : "fnv1a64",
+    "fingerprintValue" : "1708e82b633a2f78",
+    "hasContent" : false,
+    "lineCount" : 5
+  },
+  "before" : {
+    "byteCount" : 17,
+    "fingerprintAlgorithm" : "fnv1a64",
+    "fingerprintValue" : "76660c7e4deade7c",
+    "hasContent" : false,
+    "lineCount" : 4
+  },
+  "difference" : {
+    "changeCount" : 3,
+    "deletions" : 1,
+    "hasChanges" : true,
+    "insertions" : 2
+  },
+  "hasRollbackGuard" : true,
+  "metadata" : {
+
+  },
+  "operation" : "edit_operations",
+  "rollbackOperationCount" : 2,
+  "target" : "sample.txt"
+}
