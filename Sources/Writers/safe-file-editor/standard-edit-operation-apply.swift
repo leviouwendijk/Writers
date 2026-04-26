@@ -307,13 +307,20 @@ public extension StandardEditOperation {
 
     static func applying(
         _ operations: [Self],
-        to content: String
+        to content: String,
+        mode: StandardEditMode = .sequential
     ) throws -> String {
-        try operations.reduce(
-            content
-        ) { partial, operation in
-            try operation.applying(
-                to: partial
+        switch mode {
+        case .sequential:
+            return try applyingSequential(
+                operations,
+                to: content
+            )
+
+        case .snapshot:
+            return try applyingSnapshot(
+                operations,
+                to: content
             )
         }
     }

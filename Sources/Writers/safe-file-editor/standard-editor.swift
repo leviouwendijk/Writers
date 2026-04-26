@@ -26,16 +26,21 @@ public struct StandardEditor: Sendable {
 
     public func preview(
         _ operation: StandardEditOperation,
+        mode: StandardEditMode = .sequential,
         encoding: String.Encoding = .utf8
     ) throws -> StandardEditResult {
         try preview(
-            [operation],
+            [
+                operation,
+            ],
+            mode: mode,
             encoding: encoding
         )
     }
 
     public func preview(
         _ operations: [StandardEditOperation],
+        mode: StandardEditMode = .sequential,
         encoding: String.Encoding = .utf8
     ) throws -> StandardEditResult {
         let original = try IntegratedReader.text(
@@ -47,7 +52,8 @@ public struct StandardEditor: Sendable {
 
         let edited = try StandardEditOperation.applying(
             operations,
-            to: original
+            to: original,
+            mode: mode
         )
 
         return makeResult(
@@ -61,11 +67,15 @@ public struct StandardEditor: Sendable {
     @discardableResult
     public func edit(
         _ operation: StandardEditOperation,
+        mode: StandardEditMode = .sequential,
         encoding: String.Encoding = .utf8,
         options: SafeWriteOptions = .init()
     ) throws -> StandardEditResult {
         try edit(
-            [operation],
+            [
+                operation,
+            ],
+            mode: mode,
             encoding: encoding,
             options: options
         )
@@ -74,11 +84,13 @@ public struct StandardEditor: Sendable {
     @discardableResult
     public func edit(
         _ operations: [StandardEditOperation],
+        mode: StandardEditMode = .sequential,
         encoding: String.Encoding = .utf8,
         options: SafeWriteOptions = .init()
     ) throws -> StandardEditResult {
         let preview = try preview(
             operations,
+            mode: mode,
             encoding: encoding
         )
 
@@ -108,7 +120,7 @@ public struct StandardEditor: Sendable {
     // ) throws -> String {
     // }
 
-    private func makeResult(
+    internal func makeResult(
         operations: [StandardEditOperation],
         original: String,
         edited: String,
@@ -136,7 +148,7 @@ public struct StandardEditor: Sendable {
         )
     }
 
-    private func changes(
+    internal func changes(
         for difference: SafeFileDifference,
         originalContent: String,
         editedContent: String
