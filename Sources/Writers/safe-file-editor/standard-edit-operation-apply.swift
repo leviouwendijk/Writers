@@ -111,6 +111,10 @@ public extension StandardEditOperation {
             return edited
 
         case .replaceLine(let line, let replacement):
+            try Self.validateLogicalLine(
+                replacement
+            )
+
             var lines = WriteTextLines(
                 content
             ).lines
@@ -125,7 +129,43 @@ public extension StandardEditOperation {
                 lines
             )
 
+        case .replaceLineGuarded(let line, let expected, let replacement):
+            try Self.validateLogicalLine(
+                expected
+            )
+            try Self.validateLogicalLine(
+                replacement
+            )
+
+            var lines = WriteTextLines(
+                content
+            ).lines
+
+            try Self.validateExistingLine(
+                line,
+                in: lines
+            )
+
+            let actual = lines[line - 1]
+
+            guard actual == expected else {
+                throw StandardEditError.lineMismatch(
+                    line: line,
+                    expected: expected,
+                    actual: actual
+                )
+            }
+
+            lines[line - 1] = replacement
+            return WriteTextLines.string(
+                lines
+            )
+
         case .insertLines(let insertedLines, let line):
+            try Self.validateLogicalLines(
+                insertedLines
+            )
+
             var lines = WriteTextLines(
                 content
             ).lines
@@ -149,6 +189,10 @@ public extension StandardEditOperation {
             )
 
         case .replaceLines(let range, let replacementLines):
+            try Self.validateLogicalLines(
+                replacementLines
+            )
+
             var lines = WriteTextLines(
                 content
             ).lines
@@ -157,6 +201,45 @@ public extension StandardEditOperation {
                 range,
                 in: lines
             )
+
+            lines.replaceSubrange(
+                (range.start - 1)..<range.end,
+                with: replacementLines
+            )
+
+            return WriteTextLines.string(
+                lines
+            )
+
+        case .replaceLinesGuarded(let range, let expectedLines, let replacementLines):
+            try Self.validateLogicalLines(
+                expectedLines
+            )
+            try Self.validateLogicalLines(
+                replacementLines
+            )
+
+            var lines = WriteTextLines(
+                content
+            ).lines
+
+            try Self.validateExistingRange(
+                range,
+                in: lines
+            )
+
+            let actualLines = Self.lines(
+                in: range,
+                from: lines
+            )
+
+            guard actualLines == expectedLines else {
+                throw StandardEditError.lineRangeMismatch(
+                    range: range,
+                    expected: expectedLines,
+                    actual: actualLines
+                )
+            }
 
             lines.replaceSubrange(
                 (range.start - 1)..<range.end,
@@ -176,6 +259,41 @@ public extension StandardEditOperation {
                 range,
                 in: lines
             )
+
+            lines.removeSubrange(
+                (range.start - 1)..<range.end
+            )
+
+            return WriteTextLines.string(
+                lines
+            )
+
+        case .deleteLinesGuarded(let range, let expectedLines):
+            try Self.validateLogicalLines(
+                expectedLines
+            )
+
+            var lines = WriteTextLines(
+                content
+            ).lines
+
+            try Self.validateExistingRange(
+                range,
+                in: lines
+            )
+
+            let actualLines = Self.lines(
+                in: range,
+                from: lines
+            )
+
+            guard actualLines == expectedLines else {
+                throw StandardEditError.lineRangeMismatch(
+                    range: range,
+                    expected: expectedLines,
+                    actual: actualLines
+                )
+            }
 
             lines.removeSubrange(
                 (range.start - 1)..<range.end
@@ -231,6 +349,37 @@ public extension StandardEditOperation {
         }
 
         return count
+    }
+
+    private static func validateLogicalLines(
+        _ lines: [String]
+    ) throws {
+        for line in lines {
+            try validateLogicalLine(
+                line
+            )
+        }
+    }
+
+    private static func validateLogicalLine(
+        _ line: String
+    ) throws {
+        guard !line.contains("\n"),
+              !line.contains("\r")
+        else {
+            throw StandardEditError.invalidLogicalLine(
+                line
+            )
+        }
+    }
+
+    private static func lines(
+        in range: LineRange,
+        from lines: [String]
+    ) -> [String] {
+        Array(
+            lines[(range.start - 1)..<range.end]
+        )
     }
 
     private static func validateExistingLine(
