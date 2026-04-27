@@ -267,12 +267,28 @@ public struct StandardEditBatchPlanner: Sendable {
         baseContent: String,
         mode: StandardEditMode = .sequential
     ) throws -> StandardEditBatchPlan {
-        guard mode == .sequential else {
-            throw StandardEditBatchError.unsupported_mode(
-                mode
+        switch mode {
+        case .sequential:
+            return try planSequential(
+                operations: operations,
+                baseContent: baseContent,
+                mode: mode
+            )
+
+        case .snapshot:
+            return try planSnapshot(
+                operations: operations,
+                baseContent: baseContent,
+                mode: mode
             )
         }
+    }
 
+    private func planSequential(
+        operations: [StandardEditOperation],
+        baseContent: String,
+        mode: StandardEditMode
+    ) throws -> StandardEditBatchPlan {
         var content = baseContent
         var origins = initialOrigins(
             for: baseContent
@@ -365,12 +381,129 @@ public struct StandardEditBatchPlanner: Sendable {
             )
         }
 
+        return makePlan(
+            operations: operations,
+            baseContent: baseContent,
+            finalContent: content,
+            mode: mode,
+            steps: steps
+        )
+    }
+
+    private func planSnapshot(
+        operations: [StandardEditOperation],
+        baseContent: String,
+        mode: StandardEditMode
+    ) throws -> StandardEditBatchPlan {
+        let finalContent = try StandardEditOperation.applyingSnapshot(
+            operations,
+            to: baseContent
+        )
+        let baseOrigins = initialOrigins(
+            for: baseContent
+        )
+        var steps: [StandardEditBatchStep] = []
+        var touchedOriginalLines = Set<Int>()
+
+        for pair in operations.enumerated() {
+            let stepIndex = pair.offset + 1
+            let operation = pair.element
+            let beforeContent = baseContent
+            let afterContent = try operation.applyingSnapshot(
+                to: baseContent
+            )
+            let difference = WriteDifference.lines(
+                old: beforeContent,
+                new: afterContent,
+                oldName: "\(target.lastPathComponent) (snapshot step \(stepIndex) before)",
+                newName: "\(target.lastPathComponent) (snapshot step \(stepIndex) after)"
+            )
+            let hunks = changedHunks(
+                for: difference
+            )
+            let removedOrigins = originsTouched(
+                hunks: hunks,
+                origins: baseOrigins
+            )
+            let priorStepIndexes = removedOrigins.priorStepIndexes(
+                before: stepIndex
+            )
+            let originalLines = removedOrigins.originalLineNumbers()
+            var diagnostics = diagnostics(
+                stepIndex: stepIndex,
+                beforeContent: beforeContent,
+                afterContent: afterContent,
+                origins: removedOrigins,
+                priorStepIndexes: priorStepIndexes,
+                previousOriginalLines: touchedOriginalLines
+            )
+
+            touchedOriginalLines.formUnion(
+                originalLines
+            )
+
+            if hunks.isEmpty,
+               diagnostics.isEmpty {
+                diagnostics.append(
+                    .init(
+                        code: .no_changes,
+                        step: stepIndex,
+                        message: "Operation \(stepIndex) produced no textual changes."
+                    )
+                )
+            }
+
+            steps.append(
+                .init(
+                    index: stepIndex,
+                    operation: operation,
+                    before: .init(
+                        content: beforeContent
+                    ),
+                    after: .init(
+                        content: afterContent
+                    ),
+                    touch: .init(
+                        beforeRanges: ranges(
+                            hunks.map(\.before)
+                        ),
+                        afterRanges: ranges(
+                            hunks.map(\.after)
+                        ),
+                        originalRanges: ranges(
+                            originalLines
+                        ),
+                        priorStepIndexes: priorStepIndexes,
+                        origins: removedOrigins,
+                        overlapsPriorStep: !priorStepIndexes.isEmpty
+                    ),
+                    diagnostics: diagnostics
+                )
+            )
+        }
+
+        return makePlan(
+            operations: operations,
+            baseContent: baseContent,
+            finalContent: finalContent,
+            mode: mode,
+            steps: steps
+        )
+    }
+
+    private func makePlan(
+        operations: [StandardEditOperation],
+        baseContent: String,
+        finalContent: String,
+        mode: StandardEditMode,
+        steps: [StandardEditBatchStep]
+    ) -> StandardEditBatchPlan {
         let result = StandardEditor(
             target
         ).makeResult(
             operations: operations,
             original: baseContent,
-            edited: content,
+            edited: finalContent,
             writeResult: nil
         )
         let diagnostics = steps.flatMap(\.diagnostics)
@@ -383,7 +516,7 @@ public struct StandardEditBatchPlanner: Sendable {
                 content: baseContent
             ),
             final: .init(
-                content: content
+                content: finalContent
             ),
             steps: steps,
             result: result,

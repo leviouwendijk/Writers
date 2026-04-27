@@ -432,9 +432,9 @@ extension WritersFlowSuite {
                 }
             }
 
-            Step("reject unsupported batch mode") {
+            Step("plan snapshot mode against original line coordinates") {
                 let workspace = try TestWorkspace(
-                    "edit-batch-unsupported-mode"
+                    "edit-batch-snapshot-mode"
                 )
                 defer {
                     workspace.remove()
@@ -448,6 +448,8 @@ extension WritersFlowSuite {
                     [
                         "alpha",
                         "beta",
+                        "charlie",
+                        "delta",
                     ],
                     to: url
                 )
@@ -456,19 +458,62 @@ extension WritersFlowSuite {
                     url
                 )
 
-                try Expect.throwsError(
-                    "unsupported-mode.snapshot"
-                ) {
-                    _ = try editor.batch(
-                        [
-                            .replaceLine(
-                                2,
-                                with: "bravo"
-                            ),
-                        ],
-                        mode: .snapshot
-                    )
-                }
+                let batch = try editor.batch(
+                    [
+                        .insertLines(
+                            [
+                                "inserted",
+                            ],
+                            atLine: 2
+                        ),
+                        .replaceLine(
+                            3,
+                            with: "changed-charlie"
+                        ),
+                    ],
+                    mode: .snapshot
+                )
+
+                try Expect.equal(
+                    batch.mode,
+                    .snapshot,
+                    "snapshot.mode"
+                )
+
+                try Expect.equal(
+                    batch.steps.count,
+                    2,
+                    "snapshot.steps.count"
+                )
+
+                try Expect.equal(
+                    batch.result.editedContent,
+                    [
+                        "alpha",
+                        "inserted",
+                        "beta",
+                        "changed-charlie",
+                        "delta",
+                    ].joined(
+                        separator: "\n"
+                    ),
+                    "snapshot.final-content"
+                )
+
+                try Expect.equal(
+                    renderedRanges(
+                        batch.steps[1].touch.originalRanges
+                    ),
+                    [
+                        "3...3",
+                    ],
+                    "snapshot.step-2.original-ranges"
+                )
+
+                try Expect.false(
+                    batch.steps[1].touch.overlapsPriorStep,
+                    "snapshot.step-2.overlaps-prior-step"
+                )
             }
         }
     }
