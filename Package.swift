@@ -23,6 +23,7 @@ let package = Package(
         .package(url: "https://github.com/leviouwendijk/Difference.git", branch: "master"),
         .package(url: "https://github.com/leviouwendijk/Position.git", branch: "master"),
         .package(url: "https://github.com/leviouwendijk/Readers.git", branch: "master"),
+        .package(url: "https://github.com/leviouwendijk/Path.git", branch: "master"),
 
         .package(url: "https://github.com/leviouwendijk/TestFlows.git", branch: "master"),
     ],
@@ -33,6 +34,7 @@ let package = Package(
                 .product(name: "Difference", package: "Difference"),
                 .product(name: "Position", package: "Position"),
                 .product(name: "Readers", package: "Readers"),
+                .product(name: "Path", package: "Path"),
             ],
         ),
 
@@ -43,6 +45,7 @@ let package = Package(
                 .product(name: "Difference", package: "Difference"),
                 .product(name: "Position", package: "Position"),
                 .product(name: "Readers", package: "Readers"),
+                .product(name: "Path", package: "Path"),
                 .product(name: "TestFlows", package: "TestFlows"),
             ],
             // sources: ["WritersTestFlows"]

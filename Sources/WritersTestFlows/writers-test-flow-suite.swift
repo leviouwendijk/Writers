@@ -32,6 +32,13 @@ enum WritersFlowSuite: TestFlowRegistry {
         binaryRollbackContractFlow,
         mutationSnapshotFlow,
         editConstraintFlow,
+        editBatchFlow,
+        editPassFlow,
+        standardMutationFlow,
+        standardRollbackFlow,
+        standardRollbackHardeningFlow,
+        writerFacadeFlow,
+        workspaceWriterFlow,
     ]
 }
 

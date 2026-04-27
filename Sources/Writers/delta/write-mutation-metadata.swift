@@ -11,20 +11,15 @@ public struct WriteMutationMetadata: Sendable, Codable, Hashable {
 
     public var rollbackOf: UUID? {
         get {
-            guard let rawValue = raw[
+            uuid(
                 WriteMutationMetadataKey.rollback_of
-            ] else {
-                return nil
-            }
-
-            return UUID(
-                uuidString: rawValue
             )
         }
         set {
-            raw[
-                WriteMutationMetadataKey.rollback_of
-            ] = newValue?.uuidString.lowercased()
+            setUUID(
+                newValue,
+                for: WriteMutationMetadataKey.rollback_of
+            )
         }
     }
 
@@ -85,6 +80,123 @@ public struct WriteMutationMetadata: Sendable, Codable, Hashable {
         }
     }
 
+    public var passID: UUID? {
+        get {
+            uuid(
+                WriteMutationMetadataKey.pass_id
+            )
+        }
+        set {
+            setUUID(
+                newValue,
+                for: WriteMutationMetadataKey.pass_id
+            )
+        }
+    }
+
+    public var passIndex: Int? {
+        get {
+            int(
+                WriteMutationMetadataKey.pass_index
+            )
+        }
+        set {
+            setInt(
+                newValue,
+                for: WriteMutationMetadataKey.pass_index
+            )
+        }
+    }
+
+    public var passCount: Int? {
+        get {
+            int(
+                WriteMutationMetadataKey.pass_count
+            )
+        }
+        set {
+            setInt(
+                newValue,
+                for: WriteMutationMetadataKey.pass_count
+            )
+        }
+    }
+
+    public var rollbackOfPass: UUID? {
+        get {
+            uuid(
+                WriteMutationMetadataKey.rollback_of_pass
+            )
+        }
+        set {
+            setUUID(
+                newValue,
+                for: WriteMutationMetadataKey.rollback_of_pass
+            )
+        }
+    }
+
+    public var rollbackPassID: UUID? {
+        get {
+            uuid(
+                WriteMutationMetadataKey.rollback_pass_id
+            )
+        }
+        set {
+            setUUID(
+                newValue,
+                for: WriteMutationMetadataKey.rollback_pass_id
+            )
+        }
+    }
+
+    public var rollbackIndex: Int? {
+        get {
+            int(
+                WriteMutationMetadataKey.rollback_index
+            )
+        }
+        set {
+            setInt(
+                newValue,
+                for: WriteMutationMetadataKey.rollback_index
+            )
+        }
+    }
+
+    public var rollbackCount: Int? {
+        get {
+            int(
+                WriteMutationMetadataKey.rollback_count
+            )
+        }
+        set {
+            setInt(
+                newValue,
+                for: WriteMutationMetadataKey.rollback_count
+            )
+        }
+    }
+
+    public var rollbackAction: StandardMutationRollbackActionKind? {
+        get {
+            guard let rawValue = raw[
+                WriteMutationMetadataKey.rollback_action
+            ] else {
+                return nil
+            }
+
+            return StandardMutationRollbackActionKind(
+                rawValue: rawValue
+            )
+        }
+        set {
+            raw[
+                WriteMutationMetadataKey.rollback_action
+            ] = newValue?.rawValue
+        }
+    }
+
     public func setting(
         _ key: String,
         to value: String?
@@ -94,6 +206,56 @@ public struct WriteMutationMetadata: Sendable, Codable, Hashable {
             key
         ] = value
         return copy
+    }
+
+    private func uuid(
+        _ key: String
+    ) -> UUID? {
+        guard let rawValue = raw[
+            key
+        ] else {
+            return nil
+        }
+
+        return UUID(
+            uuidString: rawValue
+        )
+    }
+
+    private mutating func setUUID(
+        _ value: UUID?,
+        for key: String
+    ) {
+        raw[
+            key
+        ] = value?.uuidString.lowercased()
+    }
+
+    private func int(
+        _ key: String
+    ) -> Int? {
+        guard let rawValue = raw[
+            key
+        ] else {
+            return nil
+        }
+
+        return Int(
+            rawValue
+        )
+    }
+
+    private mutating func setInt(
+        _ value: Int?,
+        for key: String
+    ) {
+        raw[
+            key
+        ] = value.map {
+            String(
+                $0
+            )
+        }
     }
 }
 

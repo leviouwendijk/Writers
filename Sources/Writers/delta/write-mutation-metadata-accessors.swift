@@ -24,4 +24,36 @@ public extension WriteMutationRecord {
     var surfacedDeltaKind: WriteDeltaKind {
         typedMetadata.delta ?? deltaKind
     }
+
+    var mutationPassID: UUID? {
+        typedMetadata.passID
+    }
+
+    var mutationPassIndex: Int? {
+        typedMetadata.passIndex
+    }
+
+    var mutationPassCount: Int? {
+        typedMetadata.passCount
+    }
+
+    var rollbackOfPassID: UUID? {
+        typedMetadata.rollbackOfPass
+    }
+
+    var rollbackPassID: UUID? {
+        typedMetadata.rollbackPassID
+    }
+
+    var rollbackIndex: Int? {
+        typedMetadata.rollbackIndex
+    }
+
+    var rollbackCount: Int? {
+        typedMetadata.rollbackCount
+    }
+
+    var mutationRollbackAction: StandardMutationRollbackActionKind? {
+        typedMetadata.rollbackAction
+    }
 }

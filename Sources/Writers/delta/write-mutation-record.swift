@@ -1,11 +1,14 @@
 import Foundation
 
 public enum WriteMutationOperationKind: String, Codable, Sendable, Hashable, CaseIterable {
+    case create_text
+    case replace_text
     case write_data
     case write_text
     case append_text
     case edit_operations
     case merge_edit
+    case delete_resource
     case rollback
     case unknown
 }

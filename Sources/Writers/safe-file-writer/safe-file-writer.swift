@@ -1,15 +1,26 @@
 import Foundation
 
-public typealias SafeFile = StandardWriter
+// public typealias SafeFile = StandardWriter
+public typealias SafeFile = FileWriter
+public typealias StandardWriter = FileWriter
 
-public struct StandardWriter: Sendable, SafelyWritable {
+public struct FileWriter: Sendable, SafelyWritable {
     public let url: URL
 
     public init(
         _ url: URL
     ) {
-        self.url = url
+        self.url = url.standardizedFileURL
     }
+
+// public struct StandardWriter: Sendable, SafelyWritable {
+//     public let url: URL
+
+    // public init(
+    //     _ url: URL
+    // ) {
+    //     self.url = url
+    // }
 
     @discardableResult
     public func write(
