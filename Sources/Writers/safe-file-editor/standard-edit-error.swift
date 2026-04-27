@@ -22,6 +22,14 @@ public enum StandardEditError: Error, LocalizedError {
         actual: [String]
     )
 
+    case insertionSiteMismatch(
+        line: Int,
+        expectedBefore: [String],
+        actualBefore: [String],
+        expectedAfter: [String],
+        actualAfter: [String]
+    )
+
     case invalidLogicalLine(String)
 
     public var errorDescription: String? {
@@ -57,6 +65,9 @@ public enum StandardEditError: Error, LocalizedError {
 
         case .lineRangeMismatch(let range, let expected, let actual):
             return "Edit line range \(range) did not match expected content. Expected \(expected.count) line(s), found \(actual.count) line(s)."
+
+        case .insertionSiteMismatch(let line, let expectedBefore, let actualBefore, let expectedAfter, let actualAfter):
+            return "Edit insertion site \(line) did not match expected context. Expected before \(expectedBefore.count) line(s), found \(actualBefore.count); expected after \(expectedAfter.count) line(s), found \(actualAfter.count)."
 
         case .invalidLogicalLine(let line):
             return "Edit line payload contains newline characters and is not a single logical line: \(String(reflecting: line))"

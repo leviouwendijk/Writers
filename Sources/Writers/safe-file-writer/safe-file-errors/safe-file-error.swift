@@ -1,4 +1,5 @@
 import Foundation
+import Difference
 
 public enum SafeFileError: Error, LocalizedError {
     case parentDirectoryMissing(URL)
@@ -20,7 +21,21 @@ public enum SafeFileError: Error, LocalizedError {
             return "Refusing to overwrite non-blank file without override: \(url.path)"
 
         case .overwriteConflict(let conflict):
-            return "Refusing to overwrite non-blank file without override: \(conflict.url.path)"
+            var message = """
+            Refusing to overwrite non-blank file without override:
+            \(conflict.url.path)
+            """
+
+            if let difference = conflict.difference {
+                message += """
+
+                
+
+                \(DifferenceRenderer.Basic.render(difference))
+                """
+            }
+
+            return message
 
         case .backupNotFound(let url):
             return "Backup not found at: \(url.path)"

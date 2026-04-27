@@ -31,6 +31,7 @@ enum WritersFlowSuite: TestFlowRegistry {
         rollbackPlanContractFlow,
         binaryRollbackContractFlow,
         mutationSnapshotFlow,
+        editConstraintFlow,
     ]
 }
 

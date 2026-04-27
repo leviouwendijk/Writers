@@ -226,6 +226,34 @@ public extension StandardEditOperation {
                 originalRange: nil
             )
 
+        case .insertLinesGuarded(let insertedLines, let line, let site):
+            try validateSnapshotLogicalLines(
+                insertedLines
+            )
+            try validateSnapshotLogicalLines(
+                site.before
+            )
+            try validateSnapshotLogicalLines(
+                site.after
+            )
+            try validateSnapshotInsertionLine(
+                line,
+                in: originalLines
+            )
+            try validateSnapshotInsertionSite(
+                line,
+                site: site,
+                in: originalLines
+            )
+
+            return .init(
+                operationIndex: operationIndex,
+                startIndex: line - 1,
+                endIndex: line - 1,
+                replacementLines: insertedLines,
+                originalRange: nil
+            )
+
         case .replaceLines(let range, let replacementLines):
             try validateSnapshotLogicalLines(
                 replacementLines
@@ -513,6 +541,46 @@ public extension StandardEditOperation {
         }
     }
 
+    private static func validateSnapshotInsertionSite(
+        _ line: Int,
+        site: StandardEditSiteGuard,
+        in lines: [String]
+    ) throws {
+        let index = line - 1
+
+        let beforeLowerBound = max(
+            0,
+            index - site.before.count
+        )
+        let beforeUpperBound = index
+
+        let actualBefore = Array(
+            lines[beforeLowerBound..<beforeUpperBound]
+        )
+
+        let afterLowerBound = index
+        let afterUpperBound = min(
+            lines.count,
+            index + site.after.count
+        )
+
+        let actualAfter = Array(
+            lines[afterLowerBound..<afterUpperBound]
+        )
+
+        guard actualBefore == site.before,
+              actualAfter == site.after
+        else {
+            throw StandardEditError.insertionSiteMismatch(
+                line: line,
+                expectedBefore: site.before,
+                actualBefore: actualBefore,
+                expectedAfter: site.after,
+                actualAfter: actualAfter
+            )
+        }
+    }
+
     private static func validSnapshotExistingLineRange(
         for lines: [String]
     ) -> ClosedRange<Int>? {
@@ -560,6 +628,9 @@ public extension StandardEditOperation {
 
         case .insertLines:
             return "insertLines"
+
+        case .insertLinesGuarded:
+            return "insertLinesGuarded"
 
         case .replaceLines:
             return "replaceLines"

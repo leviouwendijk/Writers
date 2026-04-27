@@ -14,6 +14,7 @@ public enum StandardEditOperation: Codable, Sendable, Hashable {
     case replaceLineGuarded(Int, expected: String, with: String)
 
     case insertLines([String], atLine: Int)
+    case insertLinesGuarded([String], atLine: Int, site: StandardEditSiteGuard)
 
     case replaceLines(LineRange, with: [String])
     case replaceLinesGuarded(LineRange, expected: [String], with: [String])
@@ -21,8 +22,6 @@ public enum StandardEditOperation: Codable, Sendable, Hashable {
     case deleteLines(LineRange)
     case deleteLinesGuarded(LineRange, expected: [String])
 }
-
-// ergonomic API surface: 
 
 public extension StandardEditOperation {
     static let file = StandardEditOperationFileSurface()
@@ -128,6 +127,18 @@ public struct StandardEditOperationLinesSurface: Sendable {
         )
     }
 
+    public func insert(
+        _ lines: [String],
+        at line: Int,
+        site: StandardEditSiteGuard
+    ) -> StandardEditOperation {
+        .insertLinesGuarded(
+            lines,
+            atLine: line,
+            site: site
+        )
+    }
+
     public func replace(
         _ range: LineRange,
         with replacement: [String]
@@ -168,4 +179,3 @@ public struct StandardEditOperationLinesSurface: Sendable {
         )
     }
 }
-

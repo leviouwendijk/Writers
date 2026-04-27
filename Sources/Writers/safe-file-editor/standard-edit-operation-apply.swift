@@ -188,6 +188,44 @@ public extension StandardEditOperation {
                 lines
             )
 
+        case .insertLinesGuarded(let insertedLines, let line, let site):
+            try Self.validateLogicalLines(
+                insertedLines
+            )
+            try Self.validateLogicalLines(
+                site.before
+            )
+            try Self.validateLogicalLines(
+                site.after
+            )
+
+            var lines = WriteTextLines(
+                content
+            ).lines
+
+            try Self.validateInsertionLine(
+                line,
+                in: lines
+            )
+            try Self.validateInsertionSite(
+                line,
+                site: site,
+                in: lines
+            )
+
+            guard !insertedLines.isEmpty else {
+                return content
+            }
+
+            lines.insert(
+                contentsOf: insertedLines,
+                at: line - 1
+            )
+
+            return WriteTextLines.string(
+                lines
+            )
+
         case .replaceLines(let range, let replacementLines):
             try Self.validateLogicalLines(
                 replacementLines
@@ -449,6 +487,46 @@ public extension StandardEditOperation {
             throw StandardEditError.insertionLineOutOfBounds(
                 line,
                 valid: valid
+            )
+        }
+    }
+
+    private static func validateInsertionSite(
+        _ line: Int,
+        site: StandardEditSiteGuard,
+        in lines: [String]
+    ) throws {
+        let index = line - 1
+
+        let beforeLowerBound = max(
+            0,
+            index - site.before.count
+        )
+        let beforeUpperBound = index
+
+        let actualBefore = Array(
+            lines[beforeLowerBound..<beforeUpperBound]
+        )
+
+        let afterLowerBound = index
+        let afterUpperBound = min(
+            lines.count,
+            index + site.after.count
+        )
+
+        let actualAfter = Array(
+            lines[afterLowerBound..<afterUpperBound]
+        )
+
+        guard actualBefore == site.before,
+              actualAfter == site.after
+        else {
+            throw StandardEditError.insertionSiteMismatch(
+                line: line,
+                expectedBefore: site.before,
+                actualBefore: actualBefore,
+                expectedAfter: site.after,
+                actualAfter: actualAfter
             )
         }
     }
