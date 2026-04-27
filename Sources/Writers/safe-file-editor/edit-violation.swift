@@ -14,6 +14,7 @@ public enum StandardEditViolationCode: String, Sendable, Codable, Hashable, Case
     case original_range_outside_scope
     case edited_range_outside_scope
     case operation_outside_scope
+    case line_payload_contains_newline
 }
 
 public enum StandardEditRecoveryHint: String, Sendable, Codable, Hashable, CaseIterable {
@@ -27,6 +28,7 @@ public enum StandardEditRecoveryHint: String, Sendable, Codable, Hashable, CaseI
     case use_insert_lines_only
     case use_precise_line_operation
     case use_snapshot_mode
+    case split_multiline_payload_into_lines
 }
 
 public enum StandardEditViolation: Error, Sendable, LocalizedError, Hashable {
@@ -80,6 +82,12 @@ public enum StandardEditViolation: Error, Sendable, LocalizedError, Hashable {
         operation: StandardEditOperationKind,
         scope: StandardEditScope
     )
+    case line_payload_contains_newline(
+        operationIndex: Int,
+        operation: StandardEditOperationKind,
+        field: String,
+        lineIndex: Int?
+    )
 
     public var code: StandardEditViolationCode {
         switch self {
@@ -118,6 +126,9 @@ public enum StandardEditViolation: Error, Sendable, LocalizedError, Hashable {
 
         case .operation_outside_scope:
             return .operation_outside_scope
+
+        case .line_payload_contains_newline:
+            return .line_payload_contains_newline
         }
     }
 
@@ -170,6 +181,12 @@ public enum StandardEditViolation: Error, Sendable, LocalizedError, Hashable {
                 .request_larger_scope,
                 .re_read_file,
             ]
+
+        case .line_payload_contains_newline:
+            return [
+                .split_multiline_payload_into_lines,
+                .use_precise_line_operation,
+            ]
         }
     }
 
@@ -217,6 +234,13 @@ public enum StandardEditViolation: Error, Sendable, LocalizedError, Hashable {
 
         case .operation_outside_scope(let operationIndex, let operation, let scope):
             return "Edit operation \(operationIndex) '\(operation.rawValue)' is outside scope \(scope)."
+
+        case .line_payload_contains_newline(let operationIndex, let operation, let field, let lineIndex):
+            let location = lineIndex.map {
+                " item \($0)"
+            } ?? ""
+
+            return "Edit operation \(operationIndex) '\(operation.rawValue)' field '\(field)'\(location) contains an embedded newline. Line-oriented payloads must provide one logical line per array item."
         }
     }
 }

@@ -45,6 +45,10 @@ public extension StandardEditConstraint {
     ) throws {
         let kind = operation.kind
 
+        try operation.validateLinePayloadShape(
+            operationIndex: operationIndex
+        )
+
         guard operations.allows(
             kind
         ) else {
