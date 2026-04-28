@@ -16,7 +16,7 @@
       "location" : "https://github.com/leviouwendijk/Difference.git",
       "state" : {
         "branch" : "master",
-        "revision" : "999beddfaa99a991807a4e07e8c0482512c94b69"
+        "revision" : "ca0f33316fcf56ace04f1f5a1bb178667a291abc"
       }
     },
     {
@@ -92,12 +92,21 @@
       }
     },
     {
+      "identity" : "strings",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/leviouwendijk/Strings",
+      "state" : {
+        "branch" : "master",
+        "revision" : "86a939d7bbb3e25808f88fbcedcee4069a5a5ae1"
+      }
+    },
+    {
       "identity" : "terminal",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/leviouwendijk/Terminal.git",
       "state" : {
         "branch" : "master",
-        "revision" : "d1d40273bdf557d99e5c4a767789ee662475cfd7"
+        "revision" : "3132ad4ece9dc7607d9abee0a180586eeea412cf"
       }
     },
     {
@@ -106,7 +115,7 @@
       "location" : "https://github.com/leviouwendijk/TestFlows.git",
       "state" : {
         "branch" : "master",
-        "revision" : "c8bc5c4b69bda6775fa126aa7af340d5198a1790"
+        "revision" : "cc6f6216e9c77cf2862c047a4666336cc47d25e8"
       }
     }
   ],

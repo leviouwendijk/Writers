@@ -37,9 +37,9 @@ enum WritersFlowSuite: TestFlowRegistry {
         standardMutationFlow,
         standardRollbackFlow,
         standardRollbackHardeningFlow,
+        standardMutationAutomaticRollbackFlow,
         writerFacadeFlow,
         workspaceWriterFlow,
-        editLinePayloadShapeFlow
     ]
 }
 
