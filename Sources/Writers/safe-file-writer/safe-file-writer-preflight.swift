@@ -1,4 +1,6 @@
 import Foundation
+import IO
+import Readers
 
 public struct WritePreflightCollision: Sendable, Codable, Hashable {
     public let target: URL
@@ -152,25 +154,33 @@ public enum WriteTargetPreflight {
         _ targets: [URL],
         options: SafeWriteOptions
     ) throws -> Inspection {
-        let fm = FileManager.default
         var existingCount = 0
         var collisions: [CollisionPayload] = []
 
         for target in targets {
-            guard fm.fileExists(
-                atPath: target.path
-            ) else {
+            guard
+                let metadata = try? FileInspector(
+                    target
+                ).inspect(),
+                metadata.existed
+            else {
                 continue
             }
 
             existingCount += 1
 
-            guard let data = try? Data(
-                contentsOf: target,
-                options: .uncached
+            guard let read = try? DataFileReader(
+                target
+            ).read(
+                inspected: metadata,
+                options: .init(
+                    cachePolicy: .uncached
+                )
             ) else {
                 continue
             }
+
+            let data = read.data
 
             guard !isBlankData(
                 data,
@@ -179,12 +189,17 @@ public enum WriteTargetPreflight {
                 continue
             }
 
+            guard let fingerprint = read.fileSnapshot?.contentFingerprint else {
+                continue
+            }
+
             collisions.append(
                 .init(
                     target: target,
                     data: data,
                     snapshot: .init(
-                        data: data
+                        data: data,
+                        fingerprint: fingerprint
                     )
                 )
             )
@@ -252,7 +267,7 @@ public enum WriteTargetPreflight {
         options: SafeWriteOptions,
         timestamp: String
     ) throws -> WriteBackupRecord? {
-        let fm = FileManager.default
+        let fileSystem = FileSystem.default
 
         switch policy {
         case .automatic,
@@ -268,8 +283,8 @@ public enum WriteTargetPreflight {
                 )
 
             let backupURL: URL
-            if fm.fileExists(
-                atPath: baseBackup.path
+            if fileSystem.exists(
+                baseBackup
             ) {
                 backupURL = collision.target
                     .deletingLastPathComponent()
@@ -281,8 +296,8 @@ public enum WriteTargetPreflight {
                 backupURL = baseBackup
             }
 
-            try fm.copyItem(
-                at: collision.target,
+            try fileSystem.copy(
+                collision.target,
                 to: backupURL
             )
 
@@ -309,16 +324,16 @@ public enum WriteTargetPreflight {
                 isDirectory: false
             )
 
-            if fm.fileExists(
-                atPath: dst.path
+            if fileSystem.exists(
+                dst
             ) {
-                try? fm.removeItem(
-                    at: dst
+                try? fileSystem.remove(
+                    dst
                 )
             }
 
-            try fm.copyItem(
-                at: collision.target,
+            try fileSystem.copy(
+                collision.target,
                 to: dst
             )
 

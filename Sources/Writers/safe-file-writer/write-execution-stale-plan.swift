@@ -1,4 +1,5 @@
 import Foundation
+import IO
 
 public enum WriteExecutionStalePlanError: Error, Sendable, LocalizedError, Hashable {
     case current_missing(
@@ -38,11 +39,11 @@ public extension WritePlan {
             return self
         }
 
-        let fm = FileManager.default
+        let fileSystem = FileSystem.default
 
         if let before {
-            guard fm.fileExists(
-                atPath: target.path
+            guard fileSystem.exists(
+                target
             ) else {
                 throw WriteExecutionStalePlanError.current_missing(
                     target: target,
@@ -69,8 +70,8 @@ public extension WritePlan {
             return self
         }
 
-        guard !fm.fileExists(
-            atPath: target.path
+        guard !fileSystem.exists(
+            target
         ) else {
             throw WriteExecutionStalePlanError.current_appeared(
                 target: target

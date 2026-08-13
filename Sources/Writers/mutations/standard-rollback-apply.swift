@@ -1,5 +1,6 @@
 import Difference
 import Foundation
+import IO
 
 public struct StandardMutationRollbackApplyOptions: Sendable {
     public var options: SafeWriteOptions
@@ -175,8 +176,8 @@ public struct StandardMutationRollbackApplier: Sendable {
             )
         }
 
-        try FileManager.default.removeItem(
-            at: action.target
+        try FileSystem.default.remove(
+            action.target
         )
 
         return .init(

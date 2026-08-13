@@ -1,4 +1,5 @@
 import Foundation
+import IO
 
 extension StandardEditRecordStore: WriteEditRecordStore {
     @discardableResult
@@ -31,8 +32,8 @@ extension StandardEditRecordStore: WriteEditRecordStore {
 
         let location = try stored.requireLocalURL()
 
-        guard FileManager.default.fileExists(
-            atPath: location.path
+        guard FileSystem.default.exists(
+            location
         ) else {
             return nil
         }

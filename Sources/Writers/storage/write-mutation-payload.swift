@@ -1,4 +1,5 @@
 import Foundation
+import IO
 
 public enum WriteMutationPayloadPolicy: String, Sendable, Codable, Hashable, CaseIterable {
     case inline
@@ -96,9 +97,8 @@ public extension StandardMutationRecordStore {
                 name: name
             )
 
-            try FileManager.default.createDirectory(
-                at: url.deletingLastPathComponent(),
-                withIntermediateDirectories: true
+            try FileSystem.default.directory.create(
+                url.deletingLastPathComponent()
             )
 
             try Data(
@@ -126,9 +126,8 @@ public extension StandardMutationRecordStore {
                 name: "rollback.json"
             )
 
-            try FileManager.default.createDirectory(
-                at: url.deletingLastPathComponent(),
-                withIntermediateDirectories: true
+            try FileSystem.default.directory.create(
+                url.deletingLastPathComponent()
             )
 
             let encoder = JSONEncoder()

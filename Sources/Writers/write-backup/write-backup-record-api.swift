@@ -1,4 +1,5 @@
 import Foundation
+import IO
 
 public enum WriteBackupRecordStorageError: Error, Sendable, LocalizedError {
     case missing_location(
@@ -72,14 +73,16 @@ public extension WriteBackupRecordStore {
     ) throws {
         let url = try record.stored.requireLocalURL()
 
-        guard FileManager.default.fileExists(
-            atPath: url.path
+        let fileSystem = FileSystem.default
+
+        guard fileSystem.exists(
+            url
         ) else {
             return
         }
 
-        try FileManager.default.removeItem(
-            at: url
+        try fileSystem.remove(
+            url
         )
     }
 }

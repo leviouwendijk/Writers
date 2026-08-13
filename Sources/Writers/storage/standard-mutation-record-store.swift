@@ -1,4 +1,6 @@
 import Foundation
+import IO
+import Readers
 
 public struct StandardMutationRecordStore: WriteMutationRecordStore {
     public let directoryURL: URL
@@ -21,9 +23,8 @@ public struct StandardMutationRecordStore: WriteMutationRecordStore {
     public func store(
         _ record: WriteMutationRecord
     ) throws -> WriteStoredRecord {
-        try FileManager.default.createDirectory(
-            at: directoryURL,
-            withIntermediateDirectories: true
+        try FileSystem.default.directory.create(
+            directoryURL
         )
 
         let url = recordURL(
@@ -68,15 +69,17 @@ public struct StandardMutationRecordStore: WriteMutationRecordStore {
         }
 
         let location = try stored.requireLocalURL()
+        let metadata = try FileInspector(
+            location
+        ).inspect()
 
-        guard FileManager.default.fileExists(
-            atPath: location.path
-        ) else {
+        guard metadata.existed else {
             return nil
         }
 
         return try loadLocal(
-            location
+            location,
+            inspected: metadata
         )
     }
 
@@ -98,15 +101,14 @@ public struct StandardMutationRecordStore: WriteMutationRecordStore {
     }
 
     public func listRecordURLs() throws -> [URL] {
-        guard FileManager.default.fileExists(
-            atPath: directoryURL.path
+        guard FileSystem.default.exists(
+            directoryURL
         ) else {
             return []
         }
 
-        return try FileManager.default.contentsOfDirectory(
-            at: directoryURL,
-            includingPropertiesForKeys: nil,
+        return try FileSystem.default.directory.contents(
+            directoryURL,
             options: [
                 .skipsHiddenFiles,
             ]
@@ -135,10 +137,40 @@ public struct StandardMutationRecordStore: WriteMutationRecordStore {
     private func loadLocal(
         _ url: URL
     ) throws -> WriteMutationRecord {
-        let data = try Data(
-            contentsOf: url
-        )
+        let data = try DataFileReader(
+            url
+        ).read(
+            options: .init(
+                cachePolicy: .system
+            )
+        ).data
 
+        return try decode(
+            data
+        )
+    }
+
+    private func loadLocal(
+        _ url: URL,
+        inspected metadata: FileMetadataSnapshot
+    ) throws -> WriteMutationRecord {
+        let data = try DataFileReader(
+            url
+        ).read(
+            inspected: metadata,
+            options: .init(
+                cachePolicy: .system
+            )
+        ).data
+
+        return try decode(
+            data
+        )
+    }
+
+    private func decode(
+        _ data: Data
+    ) throws -> WriteMutationRecord {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
 

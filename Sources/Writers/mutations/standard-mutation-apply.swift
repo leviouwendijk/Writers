@@ -1,4 +1,5 @@
 import Foundation
+import IO
 
 public struct StandardMutationApplyOptions: Sendable, Codable, Hashable {
     public var failure: StandardMutationFailurePolicy
@@ -313,8 +314,8 @@ public struct StandardMutationApplier: Sendable {
             )
         }
 
-        try FileManager.default.removeItem(
-            at: entry.target
+        try FileSystem.default.remove(
+            entry.target
         )
 
         return .init(

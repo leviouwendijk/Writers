@@ -1,4 +1,6 @@
 import Foundation
+import IO
+import Readers
 
 public enum WriteBackupLoadError: Error, Sendable, LocalizedError {
     case missing_payload(
@@ -36,15 +38,23 @@ public struct WriteBackupAPI: Sendable {
         store: (any WriteBackupStore)? = nil
     ) throws -> Data? {
         if let localURL = record.storage?.localURL {
-            guard FileManager.default.fileExists(
-                atPath: localURL.path
-            ) else {
+            guard
+                let metadata = try? FileInspector(
+                    localURL
+                ).inspect(),
+                metadata.existed
+            else {
                 return nil
             }
 
-            return try Data(
-                contentsOf: localURL
-            )
+            return try DataFileReader(
+                localURL
+            ).read(
+                inspected: metadata,
+                options: .init(
+                    cachePolicy: .system
+                )
+            ).data
         }
 
         guard let store else {

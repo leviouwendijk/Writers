@@ -1,4 +1,5 @@
 import Foundation
+import Readers
 
 public struct StandardEditMerger: Sendable {
     private struct AnchorLocation: Sendable, Hashable {
@@ -128,17 +129,21 @@ public struct StandardEditMerger: Sendable {
     private func currentString(
         encoding: String.Encoding
     ) throws -> String {
-        let fm = FileManager.default
-
-        guard fm.fileExists(atPath: url.path) else {
-            return ""
-        }
-
         do {
-            return try String(
-                contentsOf: url,
-                encoding: encoding
-            )
+            return try TextFileReader(
+                url
+            ).read(
+                options: .init(
+                    decoding: .exact(
+                        TextEncoding(
+                            encoding
+                        )
+                    ),
+                    missingFilePolicy: .returnEmpty,
+                    newlineNormalization: .preserve,
+                    cachePolicy: .system
+                )
+            ).text
         } catch {
             throw SafeFileError.io(
                 underlying: error

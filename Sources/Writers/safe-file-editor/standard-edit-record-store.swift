@@ -1,4 +1,6 @@
 import Foundation
+import IO
+import Readers
 
 public struct StandardEditRecordStore: Sendable {
     public let directoryURL: URL
@@ -15,9 +17,8 @@ public struct StandardEditRecordStore: Sendable {
         createIntermediateDirectories: Bool = true
     ) throws -> URL {
         if createIntermediateDirectories {
-            try FileManager.default.createDirectory(
-                at: directoryURL,
-                withIntermediateDirectories: true
+            try FileSystem.default.directory.create(
+                directoryURL
             )
         }
 
@@ -44,7 +45,13 @@ public struct StandardEditRecordStore: Sendable {
     public func load(
         _ url: URL
     ) throws -> StandardEditRecord {
-        let data = try Data(contentsOf: url)
+        let data = try DataFileReader(
+            url
+        ).read(
+            options: .init(
+                cachePolicy: .system
+            )
+        ).data
 
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
@@ -56,13 +63,14 @@ public struct StandardEditRecordStore: Sendable {
     }
 
     public func listRecordURLs() throws -> [URL] {
-        guard FileManager.default.fileExists(atPath: directoryURL.path) else {
+        guard FileSystem.default.exists(
+            directoryURL
+        ) else {
             return []
         }
 
-        return try FileManager.default.contentsOfDirectory(
-            at: directoryURL,
-            includingPropertiesForKeys: nil,
+        return try FileSystem.default.directory.contents(
+            directoryURL,
             options: [.skipsHiddenFiles]
         )
         .filter { $0.pathExtension == "json" }

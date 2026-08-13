@@ -222,10 +222,10 @@ public struct StandardEditor: Sendable {
                     originalLines: currentOriginalLines,
                     editedLines: currentEditedLines,
                     originalFingerprint: StandardContentFingerprint.fingerprint(
-                        forLines: currentOriginalLines
+                        for: currentOriginalLines
                     ),
                     editedFingerprint: StandardContentFingerprint.fingerprint(
-                        forLines: currentEditedLines
+                        for: currentEditedLines
                     ),
                     originalAnchor: makeAnchor(
                         in: originalSnapshotLines,
@@ -368,10 +368,10 @@ public struct StandardEditor: Sendable {
             beforeLines: beforeLines,
             afterLines: afterLines,
             beforeFingerprint: StandardContentFingerprint.fingerprint(
-                forLines: beforeLines
+                for: beforeLines
             ),
             afterFingerprint: StandardContentFingerprint.fingerprint(
-                forLines: afterLines
+                for: afterLines
             ),
             beforeStartLine: normalizedBeforeStartLine,
             afterStartLine: normalizedAfterStartLine

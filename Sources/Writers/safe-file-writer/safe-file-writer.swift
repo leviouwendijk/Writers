@@ -1,4 +1,5 @@
 import Foundation
+import IO
 
 // public typealias SafeFile = StandardWriter
 public typealias SafeFile = FileWriter
@@ -93,10 +94,12 @@ public struct FileWriter: Sendable, SafelyWritable {
             )
 
         case .append:
-            let fm = FileManager.default
+            let fileSystem = FileSystem.default
             var composed = string
 
-            if fm.fileExists(atPath: url.path) {
+            if fileSystem.exists(
+                url
+            ) {
                 let isBlank = try fileIsBlank(
                     whitespaceCounts: options.whitespaceOnlyIsBlank
                 )
@@ -245,12 +248,14 @@ public struct FileWriter: Sendable, SafelyWritable {
                 isDirectory: false
             )
 
-            try? FileManager.default.removeItem(
-                at: dst
+            let fileSystem = FileSystem.default
+
+            try? fileSystem.remove(
+                dst
             )
 
-            try FileManager.default.copyItem(
-                at: url,
+            try fileSystem.copy(
+                url,
                 to: dst
             )
 

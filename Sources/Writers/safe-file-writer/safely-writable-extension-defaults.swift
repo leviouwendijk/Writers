@@ -1,5 +1,7 @@
 import Foundation
 import Difference
+import IO
+import Readers
 
 public extension SafelyWritable {
     @inlinable
@@ -36,24 +38,30 @@ public extension SafelyWritable {
         backupSuffix: String = "_previous_version.bak",
         options: SafeWriteOptions = .init()
     ) throws -> TextDifference {
-        let fm = FileManager.default
+        let fileSystem = FileSystem.default
         var bu = backupURL ?? defaultBackupURL(
             suffix: backupSuffix
         )
 
-        if !fm.fileExists(atPath: bu.path),
+        if !fileSystem.exists(
+            bu
+        ),
            options.createBackupDirectory,
            let setURL = latestSetBackupURL(options: options) {
             bu = setURL
         }
 
-        guard fm.fileExists(atPath: bu.path) else {
+        guard fileSystem.exists(
+            bu
+        ) else {
             throw SafeFileError.backupNotFound(
                 bu
             )
         }
 
-        guard fm.fileExists(atPath: url.path) else {
+        guard fileSystem.exists(
+            url
+        ) else {
             throw SafeFileError.nothingToRestore(
                 url
             )
@@ -91,26 +99,62 @@ public extension SafelyWritable {
         keepCurrentAsRestorePoint: Bool = true,
         options: SafeWriteOptions = .init()
     ) throws -> URL {
-        let fm = FileManager.default
+        let fileSystem = FileSystem.default
 
-        var bu = backupURL ?? defaultBackupURL(suffix: backupSuffix)
-        if !fm.fileExists(atPath: bu.path),
+        var bu = backupURL ?? defaultBackupURL(
+            suffix: backupSuffix
+        )
+
+        if !fileSystem.exists(
+            bu
+        ),
            options.createBackupDirectory,
            let setURL = latestSetBackupURL(options: options) {
             bu = setURL
         }
 
-        guard fm.fileExists(atPath: bu.path) else { throw SafeFileError.backupNotFound(bu) }
-
-        if fm.fileExists(atPath: url.path), keepCurrentAsRestorePoint {
-            let rp = timestampedSibling(for: url, extraSuffix: ".restore_point.bak")
-            try fm.copyItem(at: url, to: rp)
+        guard fileSystem.exists(
+            bu
+        ) else {
+            throw SafeFileError.backupNotFound(
+                bu
+            )
         }
 
-        let tmp = timestampedSibling(for: url, extraSuffix: ".tmp.restore")
-        try? fm.removeItem(at: tmp)
-        try fm.copyItem(at: bu, to: tmp)
-        try replaceItem(at: url, with: tmp)
+        if fileSystem.exists(
+            url
+        ),
+           keepCurrentAsRestorePoint {
+            let restorePoint = timestampedSibling(
+                for: url,
+                extraSuffix: ".restore_point.bak"
+            )
+
+            try fileSystem.copy(
+                url,
+                to: restorePoint
+            )
+        }
+
+        let tmp = timestampedSibling(
+            for: url,
+            extraSuffix: ".tmp.restore"
+        )
+
+        try? fileSystem.remove(
+            tmp
+        )
+
+        try fileSystem.copy(
+            bu,
+            to: tmp
+        )
+
+        try replaceItem(
+            at: url,
+            with: tmp
+        )
+
         return url
     }
 }
@@ -120,39 +164,91 @@ public extension SafelyWritable {
     @inlinable
     func ensureParentExists(createIfNeeded: Bool) throws {
         let parent = url.deletingLastPathComponent()
-        let fm = FileManager.default
-        var isDir: ObjCBool = false
-        if fm.fileExists(atPath: parent.path, isDirectory: &isDir) {
-            if !isDir.boolValue { throw SafeFileError.parentDirectoryMissing(url) }
+        let metadata = try FileInspector(
+            parent
+        ).inspect()
+
+        if metadata.existed {
+            guard metadata.kind == .directory else {
+                throw SafeFileError.parentDirectoryMissing(
+                    url
+                )
+            }
+
             return
         }
+
         if createIfNeeded {
-            try fm.createDirectory(at: parent, withIntermediateDirectories: true)
+            try FileSystem.default.directory.create(
+                parent
+            )
         } else {
-            throw SafeFileError.parentDirectoryMissing(url)
+            throw SafeFileError.parentDirectoryMissing(
+                url
+            )
         }
     }
 
     @inlinable
     func fileIsBlank(whitespaceCounts: Bool) throws -> Bool {
-        let data = try Data(contentsOf: url, options: .uncached)
-        if data.isEmpty { return true }
-        guard whitespaceCounts else { return false }
-        if let s = String(data: data, encoding: .utf8) {
-            return s.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let data = try DataFileReader(
+            url
+        ).read(
+            options: .init(
+                cachePolicy: .uncached
+            )
+        ).data
+
+        if data.isEmpty {
+            return true
         }
+
+        guard whitespaceCounts else {
+            return false
+        }
+
+        if let string = String(
+            data: data,
+            encoding: .utf8
+        ) {
+            return string
+                .trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                )
+                .isEmpty
+        }
+
         return false
     }
 
     @inlinable
-    func makeBackup(suffix: String, addTimestampIfExists: Bool) throws -> URL {
-        let fm = FileManager.default
-        var bu = defaultBackupURL(suffix: suffix)
-        if fm.fileExists(atPath: bu.path), addTimestampIfExists {
-            bu = timestampedSibling(for: bu)
+    func makeBackup(
+        suffix: String,
+        addTimestampIfExists: Bool
+    ) throws -> URL {
+        let fileSystem = FileSystem.default
+        var bu = defaultBackupURL(
+            suffix: suffix
+        )
+
+        if fileSystem.exists(
+            bu
+        ),
+           addTimestampIfExists {
+            bu = timestampedSibling(
+                for: bu
+            )
         }
-        try? fm.removeItem(at: bu) // be permissive if not timestamping
-        try fm.copyItem(at: url, to: bu)
+
+        try? fileSystem.remove(
+            bu
+        )
+
+        try fileSystem.copy(
+            url,
+            to: bu
+        )
+
         return bu
     }
 
@@ -168,15 +264,29 @@ public extension SafelyWritable {
     }
 
     @inlinable
-    func replaceItem(at dst: URL, with src: URL) throws {
-        let fm = FileManager.default
+    func replaceItem(
+        at dst: URL,
+        with src: URL
+    ) throws {
+        let fileSystem = FileSystem.default
+
         do {
-            if fm.fileExists(atPath: dst.path) {
-                try fm.removeItem(at: dst)
+            if fileSystem.exists(
+                dst
+            ) {
+                try fileSystem.remove(
+                    dst
+                )
             }
-            try fm.moveItem(at: src, to: dst)
+
+            try fileSystem.move(
+                src,
+                to: dst
+            )
         } catch {
-            throw SafeFileError.io(underlying: error)
+            throw SafeFileError.io(
+                underlying: error
+            )
         }
     }
 
@@ -195,46 +305,125 @@ public extension SafelyWritable {
     }
 
     @inlinable
-    func ensureBackupSetDir(options: SafeWriteOptions, timestamp: String) throws -> URL {
-        let fm = FileManager.default
-        let base = backupBaseDir(options: options)
-        try fm.createDirectory(at: base, withIntermediateDirectories: true)
-        let set = base.appendingPathComponent("\(options.backupSetPrefix)\(timestamp)", isDirectory: true)
-        try fm.createDirectory(at: set, withIntermediateDirectories: true)
+    func ensureBackupSetDir(
+        options: SafeWriteOptions,
+        timestamp: String
+    ) throws -> URL {
+        let fileSystem = FileSystem.default
+        let base = backupBaseDir(
+            options: options
+        )
+
+        try fileSystem.directory.create(
+            base
+        )
+
+        let set = base.appendingPathComponent(
+            "\(options.backupSetPrefix)\(timestamp)",
+            isDirectory: true
+        )
+
+        try fileSystem.directory.create(
+            set
+        )
+
         return set
     }
 
     @inlinable
-    func pruneBackupSets(baseDir: URL, prefix: String, keep: Int?) throws {
-        guard let keep = keep, keep >= 0 else { return }
-        let fm = FileManager.default
-        let dirs = try fm.contentsOfDirectory(
-                at: baseDir,
-                includingPropertiesForKeys: [.isDirectoryKey],
-                options: [.skipsHiddenFiles]
-            )
-            .filter { 
-                (try? $0.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true
-                    && $0.lastPathComponent.hasPrefix(prefix) 
+    func pruneBackupSets(
+        baseDir: URL,
+        prefix: String,
+        keep: Int?
+    ) throws {
+        guard let keep = keep, keep >= 0 else {
+            return
+        }
+
+        let fileSystem = FileSystem.default
+
+        let dirs = try fileSystem.directory.contents(
+            baseDir,
+            options: [.skipsHiddenFiles]
+        )
+        .compactMap { url -> URL? in
+            guard
+                let metadata = try? FileInspector(
+                    url
+                ).inspect(),
+                metadata.kind == .directory,
+                url.lastPathComponent.hasPrefix(
+                    prefix
+                )
+            else {
+                return nil
             }
-            .sorted { $0.lastPathComponent < $1.lastPathComponent } // timestamp-friendly
+
+            return url
+        }
+        .sorted {
+            $0.lastPathComponent < $1.lastPathComponent
+        }
+
         if dirs.count > keep {
-            for url in dirs.prefix(dirs.count - keep) { try? fm.removeItem(at: url) }
+            for url in dirs.prefix(
+                dirs.count - keep
+            ) {
+                try? fileSystem.remove(
+                    url
+                )
+            }
         }
     }
 
     @inlinable
-    func latestSetBackupURL(options: SafeWriteOptions) -> URL? {
-        let fm = FileManager.default
-        let base = backupBaseDir(options: options)
-        guard let entries = try? fm.contentsOfDirectory(at: base, includingPropertiesForKeys: [.isDirectoryKey]),
-              !entries.isEmpty else { return nil }
-        // pick newest overwrite_<yyyyMMdd_HHmmss>
-        let sets = entries.filter {
-            (try? $0.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true
-        }.sorted { $0.lastPathComponent < $1.lastPathComponent }
-        guard let newestSet = sets.last else { return nil }
-        let candidate = newestSet.appendingPathComponent(url.lastPathComponent, isDirectory: false)
-        return fm.fileExists(atPath: candidate.path) ? candidate : nil
+    func latestSetBackupURL(
+        options: SafeWriteOptions
+    ) -> URL? {
+        let fileSystem = FileSystem.default
+        let base = backupBaseDir(
+            options: options
+        )
+
+        guard
+            let entries = try? fileSystem.directory.contents(
+                base
+            ),
+            !entries.isEmpty
+        else {
+            return nil
+        }
+
+        let sets = entries
+            .compactMap { entry -> URL? in
+                guard
+                    let metadata = try? FileInspector(
+                        entry
+                    ).inspect(),
+                    metadata.kind == .directory
+                else {
+                    return nil
+                }
+
+                return entry
+            }
+            .sorted {
+                $0.lastPathComponent < $1.lastPathComponent
+            }
+
+        guard let newestSet = sets.last else {
+            return nil
+        }
+
+        let candidate = newestSet.appendingPathComponent(
+            url.lastPathComponent,
+            isDirectory: false
+        )
+
+        return fileSystem.exists(
+            candidate
+        )
+            ? candidate
+            : nil
     }
 }

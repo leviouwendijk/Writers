@@ -1,4 +1,5 @@
 import Foundation
+import IO
 
 public enum StandardResourceState: Sendable, Codable, Hashable {
     case missing
@@ -79,8 +80,8 @@ public enum StandardResourceState: Sendable, Codable, Hashable {
     ) throws -> Self {
         let target = target.standardizedFileURL
 
-        guard FileManager.default.fileExists(
-            atPath: target.path
+        guard FileSystem.default.exists(
+            target
         ) else {
             return .missing
         }

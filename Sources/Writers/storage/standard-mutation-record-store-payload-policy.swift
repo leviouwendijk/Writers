@@ -1,4 +1,5 @@
 import Foundation
+import IO
 
 public extension StandardMutationRecordStore {
     @discardableResult
@@ -130,9 +131,8 @@ public extension StandardMutationRecordStore.Payloads {
             mutationID: payload.mutationID
         )
 
-        try FileManager.default.createDirectory(
-            at: url.deletingLastPathComponent(),
-            withIntermediateDirectories: true
+        try FileSystem.default.directory.create(
+            url.deletingLastPathComponent()
         )
 
         let encoder = JSONEncoder()

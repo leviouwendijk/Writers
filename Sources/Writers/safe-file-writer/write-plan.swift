@@ -1,4 +1,6 @@
 import Foundation
+import IO
+import Readers
 
 public struct WriteIncomingContent: Sendable, Codable, Hashable {
     public let data: Data
@@ -319,19 +321,31 @@ public extension StandardWriter {
         incomingText: String? = nil,
         options: SafeWriteOptions = .init()
     ) throws -> WritePlan {
-        let fm = FileManager.default
-        let existingData = fm.fileExists(
-            atPath: url.path
-        )
-            ? try IntegratedReader.data(
-                at: url,
-                missingFileReturnsEmpty: false
+        let metadata = try FileInspector(
+            url
+        ).inspect()
+
+        let existingRead = metadata.existed
+            ? try DataFileReader(
+                url
+            ).read(
+                inspected: metadata,
+                options: .init(
+                    missingFilePolicy: .throwError,
+                    cachePolicy: .uncached
+                )
             )
             : nil
 
-        let before = existingData.map {
+        let existingData = existingRead?.data
+
+        let before = existingRead.map { read in
             WriteMutationSnapshot(
-                data: $0
+                data: read.data,
+                fingerprint: read.fileSnapshot?.contentFingerprint
+                    ?? StandardContentFingerprint.fingerprint(
+                        for: read.data
+                    )
             )
         }
 
@@ -360,13 +374,12 @@ public extension StandardWriter {
         )
 
         let collision: WritePreflightCollision?
-        if let existingData,
-           !existingIsBlank {
+        if existingData != nil,
+           !existingIsBlank,
+           let before {
             collision = .init(
                 target: url,
-                snapshot: .init(
-                    data: existingData
-                )
+                snapshot: before
             )
         } else {
             collision = nil

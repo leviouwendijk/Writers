@@ -1,4 +1,5 @@
 import Foundation
+import IO
 
 public protocol WriteMutationRecordStore: Sendable {
     @discardableResult
@@ -63,14 +64,14 @@ public extension WriteMutationRecordStore {
     ) throws {
         let url = try stored.requireLocalURL()
 
-        guard FileManager.default.fileExists(
-            atPath: url.path
+        guard FileSystem.default.exists(
+            url
         ) else {
             return
         }
 
-        try FileManager.default.removeItem(
-            at: url
+        try FileSystem.default.remove(
+            url
         )
     }
 
@@ -126,14 +127,14 @@ public extension WriteEditRecordStore {
     ) throws {
         let url = try stored.requireLocalURL()
 
-        guard FileManager.default.fileExists(
-            atPath: url.path
+        guard FileSystem.default.exists(
+            url
         ) else {
             return
         }
 
-        try FileManager.default.removeItem(
-            at: url
+        try FileSystem.default.remove(
+            url
         )
     }
 

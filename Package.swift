@@ -20,6 +20,7 @@ let package = Package(
         ),
     ],
     dependencies: [
+        .package(url: "https://github.com/leviouwendijk/IO.git", branch: "master"),
         .package(url: "https://github.com/leviouwendijk/Difference.git", branch: "master"),
         .package(url: "https://github.com/leviouwendijk/Position.git", branch: "master"),
         .package(url: "https://github.com/leviouwendijk/Readers.git", branch: "master"),
@@ -31,13 +32,13 @@ let package = Package(
         .target(
             name: "Writers",
             dependencies: [
+                .product(name: "IO", package: "IO"),
                 .product(name: "Difference", package: "Difference"),
                 .product(name: "Position", package: "Position"),
                 .product(name: "Readers", package: "Readers"),
                 .product(name: "Path", package: "Path"),
             ],
         ),
-
         .executableTarget(
             name: "WritersTestFlows",
             dependencies: [

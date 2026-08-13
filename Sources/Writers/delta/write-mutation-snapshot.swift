@@ -23,15 +23,29 @@ public struct WriteMutationSnapshot: Codable, Sendable, Hashable {
         content: String? = nil,
         storeContent: Bool = false
     ) {
+        self.init(
+            data: data,
+            fingerprint: StandardContentFingerprint.fingerprint(
+                for: data
+            ),
+            content: content,
+            storeContent: storeContent
+        )
+    }
+
+    public init(
+        data: Data,
+        fingerprint: StandardContentFingerprint,
+        content: String? = nil,
+        storeContent: Bool = false
+    ) {
         let readableContent = content ?? String(
             data: data,
             encoding: .utf8
         )
 
         self.init(
-            fingerprint: StandardContentFingerprint.fingerprint(
-                for: data
-            ),
+            fingerprint: fingerprint,
             byteCount: data.count,
             lineCount: readableContent.map(Self.lineCount),
             content: storeContent ? readableContent : nil
