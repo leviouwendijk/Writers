@@ -18,6 +18,11 @@ let package = Package(
             name: "wtest",
             targets: ["WritersTestFlows"]
         ),
+
+        .executable(
+            name: "wbench",
+            targets: ["WritersBenchmark"]
+        ),
     ],
     dependencies: [
         .package(url: "https://github.com/leviouwendijk/IO.git", branch: "master"),
@@ -50,6 +55,12 @@ let package = Package(
                 .product(name: "TestFlows", package: "TestFlows"),
             ],
             // sources: ["WritersTestFlows"]
+        ),
+        .executableTarget(
+            name: "WritersBenchmark",
+            dependencies: [
+                "Writers",
+            ]
         ),
     ]
 )

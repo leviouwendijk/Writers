@@ -51,12 +51,9 @@ public extension WritePlan {
                 )
             }
 
-            let currentData = try IntegratedReader.data(
+            let currentFingerprint = try IntegratedReader.contentFingerprint(
                 at: target,
                 missingFileReturnsEmpty: false
-            )
-            let currentFingerprint = StandardContentFingerprint.fingerprint(
-                for: currentData
             )
 
             guard currentFingerprint == before.fingerprint else {

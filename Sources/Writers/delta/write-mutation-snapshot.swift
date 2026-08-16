@@ -77,11 +77,40 @@ public struct WriteMutationSnapshot: Codable, Sendable, Hashable {
             return 0
         }
 
-        return content
-            .split(
-                separator: "\n",
-                omittingEmptySubsequences: false
+        if let contiguousCount = content.utf8
+            .withContiguousStorageIfAvailable(
+                { buffer in
+                    var count = 1
+
+                    guard let baseAddress = buffer.baseAddress else {
+                        return count
+                    }
+
+                    var index = 0
+
+                    while index < buffer.count {
+                        if baseAddress[index] == 0x0A {
+                            count += 1
+                        }
+
+                        index += 1
+                    }
+
+                    return count
+                }
             )
-            .count
+        {
+            return contiguousCount
+        }
+
+        var count = 1
+
+        for byte in content.utf8 {
+            if byte == 0x0A {
+                count += 1
+            }
+        }
+
+        return count
     }
 }

@@ -61,4 +61,33 @@ public enum IntegratedReader {
             )
         }
     }
+
+    public static func contentFingerprint(
+        at url: URL,
+        missingFileReturnsEmpty: Bool = true
+    ) throws -> StandardContentFingerprint {
+        let missingFilePolicy: MissingFilePolicy = missingFileReturnsEmpty
+            ? .returnEmpty
+            : .throwError
+
+        do {
+            let result = try DataFileReader(
+                url
+            ).read(
+                options: .init(
+                    missingFilePolicy: missingFilePolicy,
+                    cachePolicy: .uncached
+                )
+            )
+
+            return result.fileSnapshot?.contentFingerprint
+                ?? StandardContentFingerprint.fingerprint(
+                    for: result.data
+                )
+        } catch {
+            throw SafeFileError.io(
+                underlying: error
+            )
+        }
+    }
 }

@@ -91,21 +91,17 @@ public extension StandardWriter {
             )
         }
 
-        let currentData = try IntegratedReader.data(
+        let currentFingerprint = try IntegratedReader.contentFingerprint(
             at: url,
             missingFileReturnsEmpty: false
         )
 
         if let expected = record.rollbackGuard?.requiredCurrentFingerprint {
-            let actual = StandardContentFingerprint.fingerprint(
-                for: currentData
-            )
-
-            guard actual == expected else {
+            guard currentFingerprint == expected else {
                 throw WriteMutationBackupRollbackError.guard_failed(
                     target: url,
                     expected: expected,
-                    actual: actual
+                    actual: currentFingerprint
                 )
             }
         }
