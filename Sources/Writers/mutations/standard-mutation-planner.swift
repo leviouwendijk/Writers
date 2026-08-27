@@ -263,8 +263,10 @@ public struct StandardMutationPlanner: Sendable {
             )
         }
 
-        guard source.kind == .file else {
-            throw StandardMutationError.target_not_file(
+        guard source.kind == .file
+            || source.kind == .directory
+        else {
+            throw StandardMutationError.target_not_movable_resource(
                 entry.source
             )
         }

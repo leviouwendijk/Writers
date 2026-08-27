@@ -202,6 +202,189 @@ extension WritersFlowSuite {
                 )
             }
 
+            Step("directory move preserves nested contents and rollback restores tree") {
+                let workspace = try TestWorkspace(
+                    "standard-directory-move-roundtrip"
+                )
+                defer {
+                    workspace.remove()
+                }
+
+                let source = workspace.root
+                    .appendingPathComponent(
+                        "source-directory",
+                        isDirectory: true
+                    )
+                let nested = source
+                    .appendingPathComponent(
+                        "nested",
+                        isDirectory: true
+                    )
+                let sourceFile = nested
+                    .appendingPathComponent(
+                        "fixture.txt"
+                    )
+                let destination = workspace.root
+                    .appendingPathComponent(
+                        "_archive/source-directory",
+                        isDirectory: true
+                    )
+                let destinationFile = destination
+                    .appendingPathComponent(
+                        "nested/fixture.txt"
+                    )
+
+                try FileManager.default.createDirectory(
+                    at: nested,
+                    withIntermediateDirectories: true
+                )
+                try "directory fixture\n".write(
+                    to: sourceFile,
+                    atomically: true,
+                    encoding: .utf8
+                )
+
+                let writer = MutationWriter()
+                let plan = try writer.mutations.plan(
+                    .move(
+                        from: source,
+                        to: destination
+                    )
+                )
+
+                try Expect.true(
+                    FileManager.default.fileExists(
+                        atPath: source.path
+                    ),
+                    "move.directory.plan.source-preserved"
+                )
+                try Expect.false(
+                    FileManager.default.fileExists(
+                        atPath: destination.path
+                    ),
+                    "move.directory.plan.destination-absent"
+                )
+
+                let result = writer.mutations.apply(
+                    plan
+                )
+
+                try Expect.equal(
+                    result.status,
+                    .applied,
+                    "move.directory.apply.status"
+                )
+                try Expect.false(
+                    FileManager.default.fileExists(
+                        atPath: source.path
+                    ),
+                    "move.directory.apply.source-absent"
+                )
+                try Expect.true(
+                    FileManager.default.fileExists(
+                        atPath: destinationFile.path
+                    ),
+                    "move.directory.apply.nested-file-present"
+                )
+                try Expect.equal(
+                    try String(
+                        contentsOf: destinationFile,
+                        encoding: .utf8
+                    ),
+                    "directory fixture\n",
+                    "move.directory.apply.nested-content"
+                )
+
+                let rollback = try Expect.notNil(
+                    result.rollback,
+                    "move.directory.rollback.plan"
+                )
+                let rollbackResult = writer.rollbacks.apply(
+                    rollback
+                )
+
+                try Expect.equal(
+                    rollbackResult.status,
+                    .applied,
+                    "move.directory.rollback.status"
+                )
+                try Expect.true(
+                    FileManager.default.fileExists(
+                        atPath: sourceFile.path
+                    ),
+                    "move.directory.rollback.nested-file-restored"
+                )
+                try Expect.false(
+                    FileManager.default.fileExists(
+                        atPath: destination.path
+                    ),
+                    "move.directory.rollback.destination-absent"
+                )
+                try Expect.equal(
+                    try String(
+                        contentsOf: sourceFile,
+                        encoding: .utf8
+                    ),
+                    "directory fixture\n",
+                    "move.directory.rollback.nested-content"
+                )
+            }
+
+            Step("move rejects symbolic-link sources") {
+                let workspace = try TestWorkspace(
+                    "standard-move-symlink"
+                )
+                defer {
+                    workspace.remove()
+                }
+
+                let target = workspace.file(
+                    "target.txt"
+                )
+                let source = workspace.root
+                    .appendingPathComponent(
+                        "source-link"
+                    )
+                let destination = workspace.root
+                    .appendingPathComponent(
+                        "destination-link"
+                    )
+
+                try "symlink fixture\n".write(
+                    to: target,
+                    atomically: true,
+                    encoding: .utf8
+                )
+                try FileManager.default.createSymbolicLink(
+                    at: source,
+                    withDestinationURL: target
+                )
+
+                try Expect.throwsError(
+                    "move.symlink.rejected"
+                ) {
+                    _ = try MutationWriter().mutations.plan(
+                        .move(
+                            from: source,
+                            to: destination
+                        )
+                    )
+                }
+
+                try Expect.true(
+                    FileManager.default.fileExists(
+                        atPath: source.path
+                    ),
+                    "move.symlink.source-preserved"
+                )
+                try Expect.false(
+                    FileManager.default.fileExists(
+                        atPath: destination.path
+                    ),
+                    "move.symlink.destination-absent"
+                )
+            }
+
             Step("WorkspaceWriter move resolves both paths") {
                 let workspace = try TestWorkspace(
                     "workspace-move"
