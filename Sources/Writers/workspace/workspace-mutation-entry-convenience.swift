@@ -118,6 +118,39 @@ public extension WorkspaceMutationEntry {
         )
     }
 
+
+    static func move(
+        from source: String,
+        to destination: String,
+        rootIdentifier: PathAccessRootIdentifier? = nil,
+        createParentDirectories: Bool = true
+    ) -> Self {
+        .move(
+            .init(
+                source: .raw(source),
+                destination: .raw(destination),
+                rootIdentifier: rootIdentifier,
+                createParentDirectories: createParentDirectories
+            )
+        )
+    }
+
+    static func move(
+        from source: StandardPath,
+        to destination: StandardPath,
+        rootIdentifier: PathAccessRootIdentifier? = nil,
+        createParentDirectories: Bool = true
+    ) -> Self {
+        .move(
+            .init(
+                source: .standard(source),
+                destination: .standard(destination),
+                rootIdentifier: rootIdentifier,
+                createParentDirectories: createParentDirectories
+            )
+        )
+    }
+
     static func delete(
         at target: String,
         rootIdentifier: PathAccessRootIdentifier? = nil,

@@ -9,6 +9,7 @@ public enum WriteMutationOperationKind: String, Codable, Sendable, Hashable, Cas
     case edit_operations
     case merge_edit
     case delete_resource
+    case move_resource
     case rollback
     case unknown
 }

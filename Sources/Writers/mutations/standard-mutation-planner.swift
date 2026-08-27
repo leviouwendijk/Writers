@@ -1,5 +1,6 @@
 import Difference
 import Foundation
+import IO
 
 public struct StandardMutationPlanner: Sendable {
     public init() {}
@@ -48,6 +49,12 @@ public struct StandardMutationPlanner: Sendable {
 
         case .edit_text(let entry):
             return try planEditText(
+                entry,
+                index: index
+            )
+
+        case .move(let entry):
+            return try planMove(
                 entry,
                 index: index
             )
@@ -238,6 +245,67 @@ public struct StandardMutationPlanner: Sendable {
         )
     }
 
+
+    private func planMove(
+        _ entry: StandardMoveResource,
+        index: Int
+    ) throws -> StandardPlannedMutation {
+        let source = try StandardMoveResourceState.inspect(
+            entry.source
+        )
+        let destination = try StandardMoveResourceState.inspect(
+            entry.destination
+        )
+
+        guard source.existed else {
+            throw StandardMutationError.target_missing(
+                entry.source
+            )
+        }
+
+        guard source.kind == .file else {
+            throw StandardMutationError.target_not_file(
+                entry.source
+            )
+        }
+
+        guard !destination.existed else {
+            throw StandardMutationError.target_exists(
+                entry.destination
+            )
+        }
+
+        let movePlan = StandardMovePlan(
+            source: source,
+            destination: destination
+        )
+
+        return .init(
+            index: index,
+            entry: .move(entry),
+            target: entry.source,
+            before: .missing,
+            after: .missing,
+            diff: nil,
+            resource: .update,
+            delta: .replacement,
+            movePlan: movePlan,
+            rollback: .move_resource(
+                .init(
+                    source: entry.destination,
+                    destination: entry.source,
+                    requiredSourceState: source.relocating(
+                        to: entry.destination
+                    ),
+                    requiredDestinationState: .missing(
+                        at: entry.source
+                    ),
+                    createParentDirectories: entry.createParentDirectories
+                )
+            )
+        )
+    }
+
     private func planDelete(
         _ entry: StandardDeleteResource,
         index: Int
@@ -290,18 +358,20 @@ public struct StandardMutationPlanner: Sendable {
         var seen = Set<String>()
 
         for entry in entries {
-            let target = entry.target.standardizedFileURL
-            let key = target.path
+            for rawTarget in entry.targets {
+                let target = rawTarget.standardizedFileURL
+                let key = target.path
 
-            guard !seen.contains(key) else {
-                throw StandardMutationError.duplicate_target(
-                    target
+                guard !seen.contains(key) else {
+                    throw StandardMutationError.duplicate_target(
+                        target
+                    )
+                }
+
+                seen.insert(
+                    key
                 )
             }
-
-            seen.insert(
-                key
-            )
         }
     }
 

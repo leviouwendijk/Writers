@@ -5,6 +5,7 @@ public enum WorkspaceMutationEntry: Sendable {
     case create_text(WorkspaceCreateText)
     case replace_text(WorkspaceReplaceText)
     case edit_text(WorkspaceEditText)
+    case move(WorkspaceMoveResource)
     case delete(WorkspaceDeleteResource)
 
     public func standardEntry(
@@ -22,6 +23,11 @@ public enum WorkspaceMutationEntry: Sendable {
             )
 
         case .edit_text(let entry):
+            return try entry.standardEntry(
+                in: workspace
+            )
+
+        case .move(let entry):
             return try entry.standardEntry(
                 in: workspace
             )
@@ -155,6 +161,47 @@ public struct WorkspaceEditText: Sendable {
             mode: mode,
             constraint: constraint,
             options: options
+        )
+    }
+}
+
+
+public struct WorkspaceMoveResource: Sendable {
+    public var source: WorkspaceMutationPath
+    public var destination: WorkspaceMutationPath
+    public var rootIdentifier: PathAccessRootIdentifier?
+    public var createParentDirectories: Bool
+
+    public init(
+        source: WorkspaceMutationPath,
+        destination: WorkspaceMutationPath,
+        rootIdentifier: PathAccessRootIdentifier? = nil,
+        createParentDirectories: Bool = true
+    ) {
+        self.source = source
+        self.destination = destination
+        self.rootIdentifier = rootIdentifier
+        self.createParentDirectories = createParentDirectories
+    }
+
+    public func standardEntry(
+        in workspace: WorkspaceWriter
+    ) throws -> StandardMutationEntry {
+        let authorizedSource = try source.authorize(
+            in: workspace,
+            rootIdentifier: rootIdentifier,
+            type: .file
+        )
+        let authorizedDestination = try destination.authorize(
+            in: workspace,
+            rootIdentifier: rootIdentifier,
+            type: .file
+        )
+
+        return .move(
+            from: authorizedSource.absoluteURL,
+            to: authorizedDestination.absoluteURL,
+            createParentDirectories: createParentDirectories
         )
     }
 }

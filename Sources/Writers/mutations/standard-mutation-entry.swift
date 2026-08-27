@@ -4,6 +4,7 @@ public enum StandardMutationEntry: Sendable {
     case create_text(StandardCreateText)
     case replace_text(StandardReplaceText)
     case edit_text(StandardEditText)
+    case move(StandardMoveResource)
     case delete(StandardDeleteResource)
 
     public var target: URL {
@@ -17,8 +18,26 @@ public enum StandardMutationEntry: Sendable {
         case .edit_text(let entry):
             return entry.target
 
+        case .move(let entry):
+            return entry.source
+
         case .delete(let entry):
             return entry.target
+        }
+    }
+
+    public var targets: [URL] {
+        switch self {
+        case .move(let entry):
+            return [
+                entry.source,
+                entry.destination,
+            ]
+
+        default:
+            return [
+                target,
+            ]
         }
     }
 }

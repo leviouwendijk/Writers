@@ -152,6 +152,13 @@ public struct StandardMutationRollbackApplier: Sendable {
                 plan: plan,
                 options: options
             )
+
+        case .move_resource(let action):
+            return try moveResource(
+                action,
+                index: index,
+                plan: plan
+            )
         }
     }
 
@@ -274,6 +281,46 @@ public struct StandardMutationRollbackApplier: Sendable {
                 resource: before.exists ? .update : .creation,
                 delta: before.exists ? .replacement : .addition
             )
+        )
+    }
+
+
+    private func moveResource(
+        _ action: StandardMutationMoveResource,
+        index: Int,
+        plan: StandardMutationRollbackPlan
+    ) throws -> WriteMutationRecord {
+        try action.requiredSourceState.requireCurrent()
+        try action.requiredDestinationState.requireCurrent()
+
+        if action.createParentDirectories {
+            try FileSystem.default.directory.create(
+                action.destination.deletingLastPathComponent(),
+                intermediates: true
+            )
+        }
+
+        try FileSystem.default.move(
+            action.source,
+            to: action.destination
+        )
+
+        return .init(
+            target: action.source,
+            operationKind: .rollback,
+            metadata: metadata(
+                plan: plan,
+                index: index,
+                action: .move_resource,
+                resource: .update,
+                delta: .replacement
+            ).merging(
+                [
+                    "move_destination": action.destination.path,
+                ]
+            ) { _, new in
+                new
+            }
         )
     }
 

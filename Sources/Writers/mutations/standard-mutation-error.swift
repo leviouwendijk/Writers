@@ -6,6 +6,8 @@ public enum StandardMutationError: Error, Sendable, LocalizedError {
     case target_missing(URL)
     case target_exists(URL)
     case target_not_text(URL)
+    case target_not_file(URL)
+    case metadata_drift_detected(target: URL)
     case unsupported_rollback_action
     case drift_detected(
         target: URL,
@@ -29,6 +31,12 @@ public enum StandardMutationError: Error, Sendable, LocalizedError {
 
         case .target_not_text(let target):
             return "Mutation target is not readable as text: \(target.path)"
+
+        case .target_not_file(let target):
+            return "Mutation source is not a regular file: \(target.path)"
+
+        case .metadata_drift_detected(let target):
+            return "Mutation metadata drift detected for \(target.path). The resource changed since planning."
 
         case .unsupported_rollback_action:
             return "Mutation rollback action is not supported by this pass."

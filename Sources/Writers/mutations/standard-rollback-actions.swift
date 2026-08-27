@@ -5,6 +5,7 @@ public enum StandardMutationRollbackActionKind: String, Sendable, Codable, Hasha
     case delete_created_file
     case restore_text
     case restore_data
+    case move_resource
 }
 
 public enum StandardMutationRollbackAction: Sendable {
@@ -12,6 +13,7 @@ public enum StandardMutationRollbackAction: Sendable {
     case delete_created_file(StandardMutationDeleteCreatedFile)
     case restore_text(StandardMutationRestoreText)
     case restore_data(StandardMutationRestoreData)
+    case move_resource(StandardMutationMoveResource)
 
     public var kind: StandardMutationRollbackActionKind {
         switch self {
@@ -26,6 +28,9 @@ public enum StandardMutationRollbackAction: Sendable {
 
         case .restore_data:
             return .restore_data
+
+        case .move_resource:
+            return .move_resource
         }
     }
 
@@ -42,6 +47,9 @@ public enum StandardMutationRollbackAction: Sendable {
 
         case .restore_data(let action):
             return action.target
+
+        case .move_resource(let action):
+            return action.source
         }
     }
 
@@ -98,6 +106,29 @@ public struct StandardMutationRestoreData: Sendable {
     }
 }
 
+
+public struct StandardMutationMoveResource: Sendable {
+    public let source: URL
+    public let destination: URL
+    public let requiredSourceState: StandardMoveResourceState
+    public let requiredDestinationState: StandardMoveResourceState
+    public let createParentDirectories: Bool
+
+    public init(
+        source: URL,
+        destination: URL,
+        requiredSourceState: StandardMoveResourceState,
+        requiredDestinationState: StandardMoveResourceState,
+        createParentDirectories: Bool = true
+    ) {
+        self.source = source.standardizedFileURL
+        self.destination = destination.standardizedFileURL
+        self.requiredSourceState = requiredSourceState
+        self.requiredDestinationState = requiredDestinationState
+        self.createParentDirectories = createParentDirectories
+    }
+}
+
 public struct StandardMutationRollbackReport: Sendable, Codable, Hashable {
     public let actionCount: Int
     public let targetCount: Int
@@ -139,5 +170,6 @@ public typealias StandardRollbackAction = StandardMutationRollbackAction
 public typealias StandardDeleteCreatedFile = StandardMutationDeleteCreatedFile
 public typealias StandardRestoreText = StandardMutationRestoreText
 public typealias StandardRestoreData = StandardMutationRestoreData
+public typealias StandardMoveResourceRollback = StandardMutationMoveResource
 public typealias StandardRollbackReport = StandardMutationRollbackReport
 public typealias StandardRollbackPlan = StandardMutationRollbackPlan

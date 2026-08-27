@@ -48,8 +48,8 @@ public struct StandardMutationReport: Sendable, Codable, Hashable {
         self.id = id
         self.entryCount = entries.count
         self.targetCount = Set(
-            entries.map {
-                $0.target.path
+            entries.flatMap {
+                $0.entry.targets.map(\.path)
             }
         ).count
         self.creates = entries.filter {

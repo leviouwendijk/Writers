@@ -81,10 +81,7 @@ public struct StandardMutationApplier: Sendable {
 
         for entry in plan.entries {
             do {
-                try entry.before.requireCurrent(
-                    at: entry.target,
-                    encoding: entry.encoding
-                )
+                try entry.requireCurrent()
 
                 if let record = try apply(
                     entry,
@@ -180,6 +177,15 @@ public struct StandardMutationApplier: Sendable {
 
         case .edit_text(let entry):
             return try applyEditText(
+                entry,
+                planned: planned,
+                passID: passID,
+                passCount: passCount,
+                metadata: metadata
+            )
+
+        case .move(let entry):
+            return try applyMove(
                 entry,
                 planned: planned,
                 passID: passID,
@@ -290,6 +296,42 @@ public struct StandardMutationApplier: Sendable {
         )
     }
 
+
+    private func applyMove(
+        _ entry: StandardMoveResource,
+        planned: StandardPlannedMutation,
+        passID: UUID,
+        passCount: Int,
+        metadata: [String: String]
+    ) throws -> WriteMutationRecord {
+        if entry.createParentDirectories {
+            try FileSystem.default.directory.create(
+                entry.destination.deletingLastPathComponent(),
+                intermediates: true
+            )
+        }
+
+        try FileSystem.default.move(
+            entry.source,
+            to: entry.destination
+        )
+
+        var recordMetadata = passMetadata(
+            planned: planned,
+            passID: passID,
+            passCount: passCount,
+            base: metadata
+        )
+        recordMetadata["move_destination"] = entry.destination.path
+
+        return .init(
+            id: planned.id,
+            target: entry.source,
+            operationKind: .move_resource,
+            metadata: recordMetadata
+        )
+    }
+
     private func applyDelete(
         _ entry: StandardDeleteResource,
         planned: StandardPlannedMutation,
@@ -393,6 +435,18 @@ public struct StandardMutationApplier: Sendable {
 }
 
 private extension StandardPlannedMutation {
+    func requireCurrent() throws {
+        if let movePlan {
+            try movePlan.requireCurrent()
+            return
+        }
+
+        try before.requireCurrent(
+            at: target,
+            encoding: encoding
+        )
+    }
+
     var encoding: String.Encoding {
         switch entry {
         case .create_text(let entry):
@@ -403,6 +457,9 @@ private extension StandardPlannedMutation {
 
         case .edit_text(let entry):
             return entry.options.encoding
+
+        case .move:
+            return .utf8
 
         case .delete:
             return .utf8

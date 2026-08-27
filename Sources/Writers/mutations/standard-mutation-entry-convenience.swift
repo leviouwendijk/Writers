@@ -55,6 +55,20 @@ public extension StandardMutationEntry {
         )
     }
 
+    static func move(
+        from source: URL,
+        to destination: URL,
+        createParentDirectories: Bool = true
+    ) -> Self {
+        .move(
+            .init(
+                source: source,
+                destination: destination,
+                createParentDirectories: createParentDirectories
+            )
+        )
+    }
+
     static func delete(
         at target: URL,
         policy: StandardDeletePolicy = .existing

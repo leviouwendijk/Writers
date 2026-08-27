@@ -97,6 +97,20 @@ public extension StandardPlannedMutation {
         let oldName = "a/\(presentationPath)"
         let newName = "b/\(presentationPath)"
 
+        if case .move(let move) = entry {
+            return .fallback(
+                title: "Preview move for \(presentationPath)",
+                contextLineCount: contextLineCount,
+                text: """
+                --- \(oldName)
+                +++ \(newName)
+                # move resource
+                source: \(move.source.path)
+                destination: \(move.destination.path)
+                """
+            )
+        }
+
         guard let before = textualPreviewContent(
             for: before
         ),
