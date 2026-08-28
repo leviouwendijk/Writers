@@ -3,7 +3,7 @@ import Path
 public enum WorkspaceMutationPath: Sendable {
     case raw(String)
     case standard(StandardPath)
-    case scoped(ScopedPath)
+    case descendant(DescendantPath)
 
     public func authorize(
         in workspace: WorkspaceWriter,
@@ -25,7 +25,7 @@ public enum WorkspaceMutationPath: Sendable {
                 type: type
             )
 
-        case .scoped(let path):
+        case .descendant(let path):
             return try workspace.authorize(
                 path,
                 rootIdentifier: rootIdentifier,

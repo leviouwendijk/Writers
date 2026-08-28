@@ -70,7 +70,7 @@ public struct WorkspaceWriter: Sendable {
     }
 
     public func authorize(
-        _ path: ScopedPath,
+        _ path: DescendantPath,
         rootIdentifier: PathAccessRootIdentifier? = nil,
         type: PathSegmentType? = nil
     ) throws -> AuthorizedPath {
@@ -114,7 +114,7 @@ public struct WorkspaceWriter: Sendable {
     }
 
     public func file(
-        _ path: ScopedPath,
+        _ path: DescendantPath,
         rootIdentifier: PathAccessRootIdentifier? = nil,
         type: PathSegmentType? = nil
     ) throws -> FileWriter {
