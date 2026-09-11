@@ -128,12 +128,19 @@ public struct StandardMutationApplier: Sendable {
             automaticRollback = nil
         }
 
+        let containsNonRollbackableAppliedEntry = plan.entries.contains { entry in
+            applied.contains(
+                entry.id
+            ) && entry.rollback.kind == .none
+        }
+
         let status: StandardMutationStatus
         if failed == nil {
             status = .applied
         } else if applied.isEmpty {
             status = .failed
-        } else if automaticRollback?.status == .applied {
+        } else if automaticRollback?.status == .applied,
+                  !containsNonRollbackableAppliedEntry {
             status = .rolled_back
         } else {
             status = .partial
@@ -177,6 +184,15 @@ public struct StandardMutationApplier: Sendable {
 
         case .edit_text(let entry):
             return try applyEditText(
+                entry,
+                planned: planned,
+                passID: passID,
+                passCount: passCount,
+                metadata: metadata
+            )
+
+        case .copy(let entry):
+            return try applyCopy(
                 entry,
                 planned: planned,
                 passID: passID,
@@ -297,6 +313,42 @@ public struct StandardMutationApplier: Sendable {
     }
 
 
+    private func applyCopy(
+        _ entry: StandardCopyResource,
+        planned: StandardPlannedMutation,
+        passID: UUID,
+        passCount: Int,
+        metadata: [String: String]
+    ) throws -> WriteMutationRecord {
+        if entry.createParentDirectories {
+            try FileSystem.default.directory.create(
+                entry.destination.deletingLastPathComponent(),
+                intermediates: true
+            )
+        }
+
+        try FileSystem.default.copy(
+            entry.source,
+            to: entry.destination
+        )
+
+        var recordMetadata = passMetadata(
+            planned: planned,
+            passID: passID,
+            passCount: passCount,
+            base: metadata
+        )
+        recordMetadata["copy_source"] = entry.source.path
+
+        return .init(
+            id: planned.id,
+            target: entry.destination,
+            operationKind: .copy_resource,
+            metadata: recordMetadata
+        )
+    }
+
+
     private func applyMove(
         _ entry: StandardMoveResource,
         planned: StandardPlannedMutation,
@@ -389,6 +441,9 @@ public struct StandardMutationApplier: Sendable {
             }
             .reversed()
             .map(\.rollback)
+            .filter {
+                $0.kind != .none
+            }
 
         guard !actions.isEmpty else {
             return nil
@@ -436,6 +491,11 @@ public struct StandardMutationApplier: Sendable {
 
 private extension StandardPlannedMutation {
     func requireCurrent() throws {
+        if let copyPlan {
+            try copyPlan.requireCurrent()
+            return
+        }
+
         if let movePlan {
             try movePlan.requireCurrent()
             return
@@ -457,6 +517,9 @@ private extension StandardPlannedMutation {
 
         case .edit_text(let entry):
             return entry.options.encoding
+
+        case .copy:
+            return .utf8
 
         case .move:
             return .utf8

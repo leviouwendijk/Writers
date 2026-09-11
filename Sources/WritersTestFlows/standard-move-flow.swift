@@ -330,6 +330,118 @@ extension WritersFlowSuite {
                 )
             }
 
+            Step("directory copy preserves source and copies nested contents") {
+                let workspace = try TestWorkspace(
+                    "standard-directory-copy"
+                )
+                defer {
+                    workspace.remove()
+                }
+
+                let source = workspace.root
+                    .appendingPathComponent(
+                        "source-directory",
+                        isDirectory: true
+                    )
+                let nested = source
+                    .appendingPathComponent(
+                        "nested",
+                        isDirectory: true
+                    )
+                let sourceFile = nested
+                    .appendingPathComponent(
+                        "fixture.txt"
+                    )
+                let destination = workspace.root
+                    .appendingPathComponent(
+                        "_copies/source-directory",
+                        isDirectory: true
+                    )
+                let destinationFile = destination
+                    .appendingPathComponent(
+                        "nested/fixture.txt"
+                    )
+
+                try FileManager.default.createDirectory(
+                    at: nested,
+                    withIntermediateDirectories: true
+                )
+                try "directory fixture\n".write(
+                    to: sourceFile,
+                    atomically: true,
+                    encoding: .utf8
+                )
+
+                let writer = MutationWriter()
+                let plan = try writer.mutations.plan(
+                    .copy(
+                        from: source,
+                        to: destination
+                    )
+                )
+
+                try Expect.true(
+                    FileManager.default.fileExists(
+                        atPath: sourceFile.path
+                    ),
+                    "copy.directory.plan.source-preserved"
+                )
+                try Expect.false(
+                    FileManager.default.fileExists(
+                        atPath: destination.path
+                    ),
+                    "copy.directory.plan.destination-absent"
+                )
+                try Expect.true(
+                    plan.entries[0].warnings.contains(
+                        .non_rollbackable
+                    ),
+                    "copy.directory.plan.non-rollbackable-warning"
+                )
+
+                let result = writer.mutations.apply(
+                    plan,
+                    options: .init(
+                        failure: .stop
+                    )
+                )
+
+                try Expect.equal(
+                    result.status,
+                    .applied,
+                    "copy.directory.apply.status"
+                )
+                try Expect.true(
+                    FileManager.default.fileExists(
+                        atPath: sourceFile.path
+                    ),
+                    "copy.directory.apply.source-preserved"
+                )
+                try Expect.true(
+                    FileManager.default.fileExists(
+                        atPath: destinationFile.path
+                    ),
+                    "copy.directory.apply.nested-file-present"
+                )
+                try Expect.equal(
+                    try String(
+                        contentsOf: destinationFile,
+                        encoding: .utf8
+                    ),
+                    "directory fixture\n",
+                    "copy.directory.apply.nested-content"
+                )
+                try Expect.isNil(
+                    result.rollback,
+                    "copy.directory.rollback-unavailable"
+                )
+                try Expect.equal(
+                    result.records.first?.operationKind,
+                    .copy_resource,
+                    "copy.directory.record.operation"
+                )
+            }
+
             Step("move rejects symbolic-link sources") {
                 let workspace = try TestWorkspace(
                     "standard-move-symlink"

@@ -33,6 +33,9 @@ public struct StandardMutationPlan: Sendable, Identifiable {
             actions: entries
                 .reversed()
                 .map(\.rollback)
+                .filter {
+                    $0.kind != .none
+                }
         )
     }
 }
@@ -50,6 +53,7 @@ public struct StandardPlannedMutation: Sendable, Identifiable {
     public let writePlan: WritePlan?
     public let editPlan: StandardEditPlan?
     public let editBatch: StandardEditBatchPlan?
+    public let copyPlan: StandardCopyPlan?
     public let movePlan: StandardMovePlan?
     public let rollback: StandardMutationRollbackAction
     public let warnings: [StandardMutationWarning]
@@ -67,6 +71,7 @@ public struct StandardPlannedMutation: Sendable, Identifiable {
         writePlan: WritePlan? = nil,
         editPlan: StandardEditPlan? = nil,
         editBatch: StandardEditBatchPlan? = nil,
+        copyPlan: StandardCopyPlan? = nil,
         movePlan: StandardMovePlan? = nil,
         rollback: StandardMutationRollbackAction,
         warnings: [StandardMutationWarning] = []
@@ -83,6 +88,7 @@ public struct StandardPlannedMutation: Sendable, Identifiable {
         self.writePlan = writePlan
         self.editPlan = editPlan
         self.editBatch = editBatch
+        self.copyPlan = copyPlan
         self.movePlan = movePlan
         self.rollback = rollback
         self.warnings = warnings

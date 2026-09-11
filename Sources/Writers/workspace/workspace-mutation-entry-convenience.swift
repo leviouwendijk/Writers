@@ -119,6 +119,38 @@ public extension WorkspaceMutationEntry {
     }
 
 
+    static func copy(
+        from source: String,
+        to destination: String,
+        rootIdentifier: PathAccessRootIdentifier? = nil,
+        createParentDirectories: Bool = true
+    ) -> Self {
+        .copy(
+            .init(
+                source: .raw(source),
+                destination: .raw(destination),
+                rootIdentifier: rootIdentifier,
+                createParentDirectories: createParentDirectories
+            )
+        )
+    }
+
+    static func copy(
+        from source: StandardPath,
+        to destination: StandardPath,
+        rootIdentifier: PathAccessRootIdentifier? = nil,
+        createParentDirectories: Bool = true
+    ) -> Self {
+        .copy(
+            .init(
+                source: .standard(source),
+                destination: .standard(destination),
+                rootIdentifier: rootIdentifier,
+                createParentDirectories: createParentDirectories
+            )
+        )
+    }
+
     static func move(
         from source: String,
         to destination: String,

@@ -53,6 +53,12 @@ public struct StandardMutationPlanner: Sendable {
                 index: index
             )
 
+        case .copy(let entry):
+            return try planCopy(
+                entry,
+                index: index
+            )
+
         case .move(let entry):
             return try planMove(
                 entry,
@@ -242,6 +248,60 @@ public struct StandardMutationPlanner: Sendable {
             warnings: warnings(
                 diff: diff
             )
+        )
+    }
+
+
+    private func planCopy(
+        _ entry: StandardCopyResource,
+        index: Int
+    ) throws -> StandardPlannedMutation {
+        let source = try StandardMoveResourceState.inspect(
+            entry.source
+        )
+        let destination = try StandardMoveResourceState.inspect(
+            entry.destination
+        )
+
+        guard source.existed else {
+            throw StandardMutationError.target_missing(
+                entry.source
+            )
+        }
+
+        guard source.kind == .file
+            || source.kind == .directory
+        else {
+            throw StandardMutationError.target_not_copyable_resource(
+                entry.source
+            )
+        }
+
+        guard !destination.existed else {
+            throw StandardMutationError.target_exists(
+                entry.destination
+            )
+        }
+
+        let copyPlan = StandardCopyPlan(
+            source: source,
+            destination: destination
+        )
+
+        return .init(
+            index: index,
+            entry: .copy(entry),
+            target: entry.destination,
+            before: .missing,
+            after: .missing,
+            diff: nil,
+            resource: .creation,
+            delta: .addition,
+            copyPlan: copyPlan,
+            rollback: .none,
+            warnings: [
+                .non_rollbackable,
+            ]
         )
     }
 

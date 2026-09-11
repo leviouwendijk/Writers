@@ -55,6 +55,20 @@ public extension StandardMutationEntry {
         )
     }
 
+    static func copy(
+        from source: URL,
+        to destination: URL,
+        createParentDirectories: Bool = true
+    ) -> Self {
+        .copy(
+            .init(
+                source: source,
+                destination: destination,
+                createParentDirectories: createParentDirectories
+            )
+        )
+    }
+
     static func move(
         from source: URL,
         to destination: URL,

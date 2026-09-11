@@ -4,6 +4,7 @@ public enum StandardMutationWarning: String, Sendable, Codable, Hashable, CaseIt
     case no_changes
     case delete_missing_ok
     case binary_resource
+    case non_rollbackable
 }
 
 public struct StandardPlannedMutationReport: Sendable, Codable, Hashable {
