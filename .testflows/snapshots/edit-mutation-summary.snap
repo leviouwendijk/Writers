@@ -14,10 +14,10 @@
     "lineCount" : 4
   },
   "difference" : {
-    "changeCount" : 3,
+    "changeCount" : 4,
     "deletions" : 1,
     "hasChanges" : true,
-    "insertions" : 2
+    "insertions" : 3
   },
   "hasRollbackGuard" : true,
   "metadata" : {
