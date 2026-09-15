@@ -1,10 +1,11 @@
 import Foundation
+import Readers
 
-public struct WriteMutationRollbackPlan: Sendable {
+public struct WriteMutationRollbackPlan: Sendable, Codable, Hashable {
     public let record: WriteMutationRecord
     public let preview: WriteMutationRollbackPreview
     public let options: SafeWriteOptions
-    public let encoding: String.Encoding
+    public let encoding: TextEncoding
     public let checkTarget: Bool
 
     public init(
@@ -17,7 +18,7 @@ public struct WriteMutationRollbackPlan: Sendable {
         self.record = record
         self.preview = preview
         self.options = options
-        self.encoding = encoding
+        self.encoding = TextEncoding(encoding)
         self.checkTarget = checkTarget
     }
 
@@ -53,12 +54,14 @@ public extension StandardWriter {
 
     @discardableResult
     func applyRollback(
-        _ plan: WriteMutationRollbackPlan
+        _ plan: WriteMutationRollbackPlan,
+        context: WriteExecutionContext = .init()
     ) throws -> WriteMutationRollbackResult {
         let writeResult = try write(
             plan.preview.rollbackContent,
-            encoding: plan.encoding,
-            options: plan.options
+            encoding: plan.encoding.foundation,
+            options: plan.options,
+            context: context
         )
 
         let rollbackRecord = writeResult.mutationRecord(
@@ -91,10 +94,12 @@ public extension WriteRollbackAPI {
 
     @discardableResult
     func apply(
-        _ plan: WriteMutationRollbackPlan
+        _ plan: WriteMutationRollbackPlan,
+        context: WriteExecutionContext = .init()
     ) throws -> WriteMutationRollbackResult {
         try writer.applyRollback(
-            plan
+            plan,
+            context: context
         )
     }
 }

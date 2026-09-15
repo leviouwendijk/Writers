@@ -165,6 +165,99 @@ extension WritersFlowSuite {
                 )
             }
 
+            Step("write-rollback-plan-codable-roundtrip") {
+                let workspace = try TestWorkspace(
+                    "write-rollback-plan-codable-roundtrip"
+                )
+                defer {
+                    workspace.remove()
+                }
+
+                let target = workspace.file(
+                    "sample.txt"
+                )
+                let writer = StandardWriter(
+                    target
+                )
+
+                _ = try writer.write(
+                    "before\n",
+                    options: .overwriteWithoutBackup
+                )
+                let edit = try writer.editor.edit(
+                    .replaceEntireFile(
+                        with: "after\n"
+                    ),
+                    options: .overwriteWithoutBackup
+                )
+                let record = edit.mutationRecord(
+                    operationKind: .write_text,
+                    storeContent: true
+                )
+                let plan = try writer.rollbackPlan(
+                    record,
+                    options: .overwriteWithoutBackup
+                )
+
+                let decoded = try durableRoundTrip(
+                    plan
+                )
+
+                try Expect.equal(
+                    decoded,
+                    plan,
+                    "write.rollback.plan.roundtrip"
+                )
+            }
+
+            Step("write-rollback-result-codable-roundtrip") {
+                let workspace = try TestWorkspace(
+                    "write-rollback-result-codable-roundtrip"
+                )
+                defer {
+                    workspace.remove()
+                }
+
+                let target = workspace.file(
+                    "sample.txt"
+                )
+                let writer = StandardWriter(
+                    target
+                )
+
+                _ = try writer.write(
+                    "before\n",
+                    options: .overwriteWithoutBackup
+                )
+                let edit = try writer.editor.edit(
+                    .replaceEntireFile(
+                        with: "after\n"
+                    ),
+                    options: .overwriteWithoutBackup
+                )
+                let record = edit.mutationRecord(
+                    operationKind: .write_text,
+                    storeContent: true
+                )
+                let plan = try writer.rollbackPlan(
+                    record,
+                    options: .overwriteWithoutBackup
+                )
+                let result = try writer.applyRollback(
+                    plan
+                )
+
+                let decoded = try durableRoundTrip(
+                    result
+                )
+
+                try Expect.equal(
+                    decoded,
+                    result,
+                    "write.rollback.result.roundtrip"
+                )
+            }
+
             Step("external-backup-policy-roundtrip") {
                 let options = SafeWriteOptions.overwriting(
                     backupPolicy: .external_store,

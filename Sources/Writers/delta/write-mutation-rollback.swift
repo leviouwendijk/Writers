@@ -58,7 +58,7 @@ public struct WriteMutationRollbackPreview: Codable, Sendable, Hashable {
     }
 }
 
-public struct WriteMutationRollbackResult: Sendable {
+public struct WriteMutationRollbackResult: Sendable, Codable, Hashable {
     public let preview: WriteMutationRollbackPreview
     public let writeResult: SafeWriteResult
     public let rollbackRecord: WriteMutationRecord
@@ -173,7 +173,8 @@ public extension StandardWriter {
         _ record: WriteMutationRecord,
         encoding: String.Encoding = .utf8,
         options: SafeWriteOptions = .overwrite,
-        checkTarget: Bool = true
+        checkTarget: Bool = true,
+        context: WriteExecutionContext = .init()
     ) throws -> WriteMutationRollbackResult {
         let preview = try previewRollback(
             record,
@@ -184,7 +185,8 @@ public extension StandardWriter {
         let writeResult = try write(
             preview.rollbackContent,
             encoding: encoding,
-            options: options
+            options: options,
+            context: context
         )
 
         let rollbackRecord = writeResult.mutationRecord(
