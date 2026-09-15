@@ -92,7 +92,8 @@ public extension WriteMutationRecord {
     }
 
     func rollbackPreview(
-        currentContent: String
+        currentContent: String,
+        backupContent: String? = nil
     ) throws -> WriteMutationRollbackPreview {
         let current = WriteMutationSnapshot(
             content: currentContent
@@ -119,6 +120,9 @@ public extension WriteMutationRecord {
                 rollbackOperations,
                 to: currentContent
             )
+        } else if let backupContent {
+            strategy = .backup_record
+            rollbackContent = backupContent
         } else {
             throw WriteMutationRollbackError.missing_payload(
                 id: id,
@@ -143,7 +147,8 @@ public extension StandardWriter {
     func previewRollback(
         _ record: WriteMutationRecord,
         encoding: String.Encoding = .utf8,
-        checkTarget: Bool = true
+        checkTarget: Bool = true,
+        context: WriteExecutionContext = .init()
     ) throws -> WriteMutationRollbackPreview {
         if checkTarget,
            !sameRollbackTarget(
@@ -162,9 +167,34 @@ public extension StandardWriter {
             missingFileReturnsEmpty: false,
             normalizeNewlines: false
         )
+        let backupContent: String?
+
+        if record.hasRollbackPayload {
+            backupContent = nil
+        } else if let backupRecord = record.backupRecord {
+            let backupData = try backups.loadRequired(
+                backupRecord,
+                store: context.backupStore
+            )
+
+            guard let content = String(
+                data: backupData,
+                encoding: encoding
+            ) else {
+                throw WriteMutationRollbackError.missing_payload(
+                    id: record.id,
+                    target: record.target
+                )
+            }
+
+            backupContent = content
+        } else {
+            backupContent = nil
+        }
 
         return try record.rollbackPreview(
-            currentContent: current
+            currentContent: current,
+            backupContent: backupContent
         )
     }
 
@@ -179,7 +209,8 @@ public extension StandardWriter {
         let preview = try previewRollback(
             record,
             encoding: encoding,
-            checkTarget: checkTarget
+            checkTarget: checkTarget,
+            context: context
         )
 
         let writeResult = try write(

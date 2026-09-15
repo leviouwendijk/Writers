@@ -37,14 +37,16 @@ public extension StandardWriter {
         _ record: WriteMutationRecord,
         encoding: String.Encoding = .utf8,
         options: SafeWriteOptions = .overwrite,
-        checkTarget: Bool = true
+        checkTarget: Bool = true,
+        context: WriteExecutionContext = .init()
     ) throws -> WriteMutationRollbackPlan {
         .init(
             record: record,
             preview: try previewRollback(
                 record,
                 encoding: encoding,
-                checkTarget: checkTarget
+                checkTarget: checkTarget,
+                context: context
             ),
             options: options,
             encoding: encoding,
@@ -57,6 +59,35 @@ public extension StandardWriter {
         _ plan: WriteMutationRollbackPlan,
         context: WriteExecutionContext = .init()
     ) throws -> WriteMutationRollbackResult {
+        if plan.checkTarget,
+           plan.record.target.standardizedFileURL != url.standardizedFileURL {
+            throw WriteMutationRollbackError.target_mismatch(
+                recordTarget: plan.record.target,
+                writerTarget: url
+            )
+        }
+
+        let current = try IntegratedReader.text(
+            at: url,
+            encoding: plan.encoding.foundation,
+            missingFileReturnsEmpty: false,
+            normalizeNewlines: false
+        )
+
+        if let expected = plan.record.rollbackGuard?.requiredCurrentFingerprint {
+            let actual = StandardContentFingerprint.fingerprint(
+                for: current
+            )
+
+            guard actual == expected else {
+                throw WriteMutationRollbackError.guard_failed(
+                    target: url,
+                    expected: expected,
+                    actual: actual
+                )
+            }
+        }
+
         let writeResult = try write(
             plan.preview.rollbackContent,
             encoding: plan.encoding.foundation,
