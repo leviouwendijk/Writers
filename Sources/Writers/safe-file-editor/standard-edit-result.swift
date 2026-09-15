@@ -168,18 +168,18 @@ public struct StandardEditResult: Sendable, Codable, Hashable {
         let lineTable = LineTable(text: text)
 
         return ranges.map { range in
-            let startOffset = lineTable.lineStartOffset(
-                forLine: range.start
-            ) ?? 0
+            let start = lineTable.lines.start(
+                range.start
+            ) ?? lineTable.indices.start
 
-            let endOffset = lineTable.lineEndOffset(
-                forLine: range.end
-            ) ?? lineTable.length
+            let end = lineTable.lines.end(
+                range.end
+            ) ?? lineTable.indices.end
 
             return lineTable.displaySpan(
                 for: PositionRange(
-                    uncheckedStart: .init(startOffset),
-                    uncheckedEnd: .init(endOffset)
+                    uncheckedStart: start,
+                    uncheckedEnd: end
                 ),
                 file: file
             )
