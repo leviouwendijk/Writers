@@ -26,7 +26,8 @@ public struct FileWriter: Sendable, SafelyWritable {
     @discardableResult
     public func write(
         _ data: Data,
-        options: SafeWriteOptions = .init()
+        options: SafeWriteOptions = .init(),
+        context: WriteExecutionContext = .init()
     ) throws -> SafeWriteResult {
         let plan = try writePlan(
             data,
@@ -37,6 +38,7 @@ public struct FileWriter: Sendable, SafelyWritable {
         return try plan.execution.apply(
             writer: self,
             options: options,
+            context: context,
             conflict: overwriteConflict(
                 incomingData: data
             )
@@ -47,7 +49,8 @@ public struct FileWriter: Sendable, SafelyWritable {
     public func write(
         _ string: String,
         encoding: String.Encoding = .utf8,
-        options: SafeWriteOptions = .init()
+        options: SafeWriteOptions = .init(),
+        context: WriteExecutionContext = .init()
     ) throws -> SafeWriteResult {
         guard let data = string.data(using: encoding) else {
             throw SafeFileError.io(
@@ -70,6 +73,7 @@ public struct FileWriter: Sendable, SafelyWritable {
         return try plan.execution.apply(
             writer: self,
             options: options,
+            context: context,
             conflict: overwriteConflict(
                 incomingString: string,
                 encoding: encoding
@@ -83,14 +87,16 @@ public struct FileWriter: Sendable, SafelyWritable {
         content mode: ContentOverwriteMode,
         separator: String? = nil,
         encoding: String.Encoding = .utf8,
-        options: SafeWriteOptions = .init()
+        options: SafeWriteOptions = .init(),
+        context: WriteExecutionContext = .init()
     ) throws -> SafeWriteResult {
         switch mode {
         case .replace:
             return try write(
                 string,
                 encoding: encoding,
-                options: options
+                options: options,
+                context: context
             )
 
         case .append:
@@ -127,7 +133,8 @@ public struct FileWriter: Sendable, SafelyWritable {
             return try write(
                 composed,
                 encoding: encoding,
-                options: writeOptions
+                options: writeOptions,
+                context: context
             )
         }
     }
@@ -136,6 +143,7 @@ public struct FileWriter: Sendable, SafelyWritable {
     public func execute(
         _ plan: WritePlan,
         options: SafeWriteOptions,
+        context: WriteExecutionContext = .init(),
         conflict: @autoclosure () -> SafeFileOverwriteConflict
     ) throws -> SafeWriteResult {
         do {
@@ -162,7 +170,8 @@ public struct FileWriter: Sendable, SafelyWritable {
                let existingData = plan.existingData {
                 backupRecord = try makeBackupRecord(
                     for: existingData,
-                    options: options
+                    options: options,
+                    context: context
                 )
             }
 
@@ -210,7 +219,8 @@ public struct FileWriter: Sendable, SafelyWritable {
 
     private func makeBackupRecord(
         for data: Data,
-        options: SafeWriteOptions
+        options: SafeWriteOptions,
+        context: WriteExecutionContext
     ) throws -> WriteBackupRecord? {
         let policy = options.resolvedBackupPolicy
 
@@ -276,7 +286,7 @@ public struct FileWriter: Sendable, SafelyWritable {
             )
 
         case .external_store:
-            guard let backupStore = options.backupStore else {
+            guard let backupStore = context.backupStore else {
                 throw WriteBackupStoreError.store_required(
                     policy: policy,
                     target: url

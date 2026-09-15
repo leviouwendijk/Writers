@@ -1,6 +1,7 @@
 import Foundation
+import Readers
 
-public enum StandardMutationEntry: Sendable {
+public enum StandardMutationEntry: Sendable, Codable, Hashable {
     case create_text(StandardCreateText)
     case replace_text(StandardReplaceText)
     case edit_text(StandardEditText)
@@ -52,11 +53,11 @@ public enum StandardMutationEntry: Sendable {
     }
 }
 
-public struct StandardCreateText: Sendable {
+public struct StandardCreateText: Sendable, Codable, Hashable {
     public var target: URL
     public var content: String
     public var policy: StandardCreatePolicy
-    public var encoding: String.Encoding
+    public var encoding: TextEncoding
     public var options: SafeWriteOptions
 
     public init(
@@ -69,16 +70,16 @@ public struct StandardCreateText: Sendable {
         self.target = target.standardizedFileURL
         self.content = content
         self.policy = policy
-        self.encoding = encoding
+        self.encoding = TextEncoding(encoding)
         self.options = options
     }
 }
 
-public struct StandardReplaceText: Sendable {
+public struct StandardReplaceText: Sendable, Codable, Hashable {
     public var target: URL
     public var content: String
     public var policy: StandardReplacePolicy
-    public var encoding: String.Encoding
+    public var encoding: TextEncoding
     public var options: SafeWriteOptions
 
     public init(
@@ -91,12 +92,12 @@ public struct StandardReplaceText: Sendable {
         self.target = target.standardizedFileURL
         self.content = content
         self.policy = policy
-        self.encoding = encoding
+        self.encoding = TextEncoding(encoding)
         self.options = options
     }
 }
 
-public struct StandardEditText: Sendable {
+public struct StandardEditText: Sendable, Codable, Hashable {
     public var target: URL
     public var operations: [StandardEditOperation]
     public var mode: StandardEditMode
@@ -118,7 +119,7 @@ public struct StandardEditText: Sendable {
     }
 }
 
-public struct StandardDeleteResource: Sendable {
+public struct StandardDeleteResource: Sendable, Codable, Hashable {
     public var target: URL
     public var policy: StandardDeletePolicy
 

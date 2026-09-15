@@ -1,7 +1,7 @@
 import Foundation
 import IO
 
-public struct StandardCopyResource: Sendable {
+public struct StandardCopyResource: Sendable, Codable, Hashable {
     public var source: URL
     public var destination: URL
     public var createParentDirectories: Bool
@@ -17,7 +17,7 @@ public struct StandardCopyResource: Sendable {
     }
 }
 
-public struct StandardCopyPlan: Sendable {
+public struct StandardCopyPlan: Sendable, Codable, Hashable {
     public let source: StandardMoveResourceState
     public let destination: StandardMoveResourceState
 

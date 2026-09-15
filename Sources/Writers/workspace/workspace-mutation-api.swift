@@ -52,22 +52,26 @@ public struct WorkspaceMutationAPI: Sendable {
     @discardableResult
     public func apply(
         _ plan: StandardMutationPlan,
-        options: StandardMutationApplyOptions = .init()
+        options: StandardMutationApplyOptions = .init(),
+        context: WriteExecutionContext = .init()
     ) -> StandardMutationResult {
         workspace.writer.mutations.apply(
             plan,
-            options: options
+            options: options,
+            context: context
         )
     }
 
     @discardableResult
     public func rollback(
         _ plan: StandardMutationRollbackPlan,
-        options: StandardMutationRollbackApplyOptions = .init()
+        options: StandardMutationRollbackApplyOptions = .init(),
+        context: WriteExecutionContext = .init()
     ) -> StandardMutationRollbackResult {
         workspace.writer.rollbacks.apply(
             plan,
-            options: options
+            options: options,
+            context: context
         )
     }
 }

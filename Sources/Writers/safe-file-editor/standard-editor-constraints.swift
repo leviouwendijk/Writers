@@ -1,4 +1,5 @@
 import Foundation
+import Readers
 
 public enum StandardEditDriftPolicy: String, Sendable, Codable, Hashable, CaseIterable {
     case allow
@@ -63,8 +64,8 @@ public enum StandardEditApplyError: Error, Sendable, LocalizedError {
     }
 }
 
-public struct StandardEditApplyOptions: Sendable {
-    public var encoding: String.Encoding
+public struct StandardEditApplyOptions: Sendable, Codable, Hashable {
+    public var encoding: TextEncoding
     public var write: SafeWriteOptions
     public var drift: StandardEditDriftPolicy
 
@@ -73,7 +74,7 @@ public struct StandardEditApplyOptions: Sendable {
         write: SafeWriteOptions = .overwrite,
         drift: StandardEditDriftPolicy = .require_original_fingerprint
     ) {
-        self.encoding = encoding
+        self.encoding = TextEncoding(encoding)
         self.write = write
         self.drift = drift
     }
@@ -148,7 +149,7 @@ public extension StandardEditor {
         try prepareApply(
             preview(
                 editPlan,
-                encoding: options.encoding
+                encoding: options.encoding.foundation
             ),
             plan: editPlan,
             options: options
@@ -177,20 +178,23 @@ public extension StandardEditor {
     func apply(
         _ preview: StandardEditResult,
         plan editPlan: StandardEditPlan,
-        options: StandardEditApplyOptions = .init()
+        options: StandardEditApplyOptions = .init(),
+        context: WriteExecutionContext = .init()
     ) throws -> StandardEditResult {
         try apply(
             prepareApply(
                 preview,
                 plan: editPlan,
                 options: options
-            )
+            ),
+            context: context
         )
     }
 
     @discardableResult
     func apply(
-        _ applyPlan: StandardEditApplyPlan
+        _ applyPlan: StandardEditApplyPlan,
+        context: WriteExecutionContext = .init()
     ) throws -> StandardEditResult {
         try validateApplyPlan(
             applyPlan
@@ -205,13 +209,14 @@ public extension StandardEditor {
         try requireNoDrift(
             preview,
             policy: applyPlan.options.drift,
-            encoding: applyPlan.options.encoding
+            encoding: applyPlan.options.encoding.foundation
         )
 
         let writeResult = try writer.write(
             preview.editedContent,
-            encoding: applyPlan.options.encoding,
-            options: applyPlan.options.write
+            encoding: applyPlan.options.encoding.foundation,
+            options: applyPlan.options.write,
+            context: context
         )
 
         let result = StandardEditResult(
@@ -234,13 +239,15 @@ public extension StandardEditor {
     @discardableResult
     func edit(
         _ plan: StandardEditPlan,
-        options: StandardEditApplyOptions = .init()
+        options: StandardEditApplyOptions = .init(),
+        context: WriteExecutionContext = .init()
     ) throws -> StandardEditResult {
         try apply(
             prepareApply(
                 plan,
                 options: options
-            )
+            ),
+            context: context
         )
     }
 
@@ -251,7 +258,8 @@ public extension StandardEditor {
         encoding: String.Encoding = .utf8,
         options: SafeWriteOptions = .init(),
         constraint: StandardEditConstraint,
-        drift: StandardEditDriftPolicy = .require_original_fingerprint
+        drift: StandardEditDriftPolicy = .require_original_fingerprint,
+        context: WriteExecutionContext = .init()
     ) throws -> StandardEditResult {
         try edit(
             StandardEditPlan(
@@ -263,7 +271,8 @@ public extension StandardEditor {
                 encoding: encoding,
                 write: options,
                 drift: drift
-            )
+            ),
+            context: context
         )
     }
 
@@ -274,7 +283,8 @@ public extension StandardEditor {
         encoding: String.Encoding = .utf8,
         options: SafeWriteOptions = .init(),
         constraint: StandardEditConstraint,
-        drift: StandardEditDriftPolicy = .require_original_fingerprint
+        drift: StandardEditDriftPolicy = .require_original_fingerprint,
+        context: WriteExecutionContext = .init()
     ) throws -> StandardEditResult {
         try edit(
             StandardEditPlan(
@@ -286,7 +296,8 @@ public extension StandardEditor {
                 encoding: encoding,
                 write: options,
                 drift: drift
-            )
+            ),
+            context: context
         )
     }
 }

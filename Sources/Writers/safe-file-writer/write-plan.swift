@@ -29,7 +29,6 @@ public struct WritePlanOptions: Sendable, Codable, Hashable {
     public let maxBackupSets: Int?
     public let backupPolicy: WriteBackupPolicy
     public let resolvedBackupPolicy: WriteBackupPolicy
-    public let hasBackupStore: Bool
     public let stalePlanPolicy: WriteExecutionStalePlanPolicy
 
     public init(
@@ -46,7 +45,6 @@ public struct WritePlanOptions: Sendable, Codable, Hashable {
         maxBackupSets: Int? = nil,
         backupPolicy: WriteBackupPolicy = .automatic,
         resolvedBackupPolicy: WriteBackupPolicy = .automatic,
-        hasBackupStore: Bool = false,
         stalePlanPolicy: WriteExecutionStalePlanPolicy = .require_current_matches_plan
     ) {
         self.existingFilePolicy = existingFilePolicy
@@ -62,7 +60,6 @@ public struct WritePlanOptions: Sendable, Codable, Hashable {
         self.maxBackupSets = maxBackupSets
         self.backupPolicy = backupPolicy
         self.resolvedBackupPolicy = resolvedBackupPolicy
-        self.hasBackupStore = hasBackupStore
         self.stalePlanPolicy = stalePlanPolicy
     }
 
@@ -83,7 +80,6 @@ public struct WritePlanOptions: Sendable, Codable, Hashable {
             maxBackupSets: options.maxBackupSets,
             backupPolicy: options.backupPolicy,
             resolvedBackupPolicy: options.resolvedBackupPolicy,
-            hasBackupStore: options.backupStore != nil,
             stalePlanPolicy: options.stalePlanPolicy
         )
     }
@@ -223,12 +219,14 @@ public struct WritePlanExecutionAPI: Sendable {
     public func apply(
         writer: StandardWriter,
         options: SafeWriteOptions,
+        context: WriteExecutionContext = .init(),
         conflict: @autoclosure () -> SafeFileOverwriteConflict
     ) throws -> SafeWriteResult {
         try WriteExecution(
             writer: writer,
             plan: plan,
-            options: options
+            options: options,
+            context: context
         ).apply(
             conflict: conflict()
         )
@@ -239,15 +237,18 @@ public struct WriteExecution: Sendable {
     public let writer: StandardWriter
     public let plan: WritePlan
     public let options: SafeWriteOptions
+    public let context: WriteExecutionContext
 
     public init(
         writer: StandardWriter,
         plan: WritePlan,
-        options: SafeWriteOptions
+        options: SafeWriteOptions,
+        context: WriteExecutionContext = .init()
     ) {
         self.writer = writer
         self.plan = plan
         self.options = options
+        self.context = context
     }
 
     @discardableResult
@@ -257,6 +258,7 @@ public struct WriteExecution: Sendable {
         try writer.execute(
             plan,
             options: options,
+            context: context,
             conflict: conflict()
         )
     }

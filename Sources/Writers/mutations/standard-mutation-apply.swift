@@ -1,5 +1,6 @@
 import Foundation
 import IO
+import Readers
 
 public struct StandardMutationApplyOptions: Sendable, Codable, Hashable {
     public var failure: StandardMutationFailurePolicy
@@ -18,7 +19,7 @@ public enum StandardMutationStatus: String, Sendable, Codable, Hashable, CaseIte
     case rolled_back
 }
 
-public struct StandardMutationFailure: Sendable {
+public struct StandardMutationFailure: Sendable, Codable, Hashable {
     public let entryID: UUID
     public let index: Int
     public let target: URL
@@ -37,7 +38,7 @@ public struct StandardMutationFailure: Sendable {
     }
 }
 
-public struct StandardMutationResult: Sendable {
+public struct StandardMutationResult: Sendable, Codable, Hashable {
     public let id: UUID
     public let plan: StandardMutationPlan
     public let status: StandardMutationStatus
@@ -73,7 +74,8 @@ public struct StandardMutationApplier: Sendable {
 
     public func apply(
         _ plan: StandardMutationPlan,
-        options: StandardMutationApplyOptions = .init()
+        options: StandardMutationApplyOptions = .init(),
+        context: WriteExecutionContext = .init()
     ) -> StandardMutationResult {
         var records: [WriteMutationRecord] = []
         var applied: [UUID] = []
@@ -87,7 +89,8 @@ public struct StandardMutationApplier: Sendable {
                     entry,
                     passID: plan.id,
                     passCount: plan.entries.count,
-                    metadata: plan.metadata
+                    metadata: plan.metadata,
+                    context: context
                 ) {
                     records.append(
                         record
@@ -122,7 +125,8 @@ public struct StandardMutationApplier: Sendable {
            options.failure == .rollback_applied,
            let rollback {
             automaticRollback = StandardMutationRollbackApplier().apply(
-                rollback
+                rollback,
+                context: context
             )
         } else {
             automaticRollback = nil
@@ -161,7 +165,8 @@ public struct StandardMutationApplier: Sendable {
         _ planned: StandardPlannedMutation,
         passID: UUID,
         passCount: Int,
-        metadata: [String: String]
+        metadata: [String: String],
+        context: WriteExecutionContext
     ) throws -> WriteMutationRecord? {
         switch planned.entry {
         case .create_text(let entry):
@@ -170,7 +175,8 @@ public struct StandardMutationApplier: Sendable {
                 planned: planned,
                 passID: passID,
                 passCount: passCount,
-                metadata: metadata
+                metadata: metadata,
+                context: context
             )
 
         case .replace_text(let entry):
@@ -179,7 +185,8 @@ public struct StandardMutationApplier: Sendable {
                 planned: planned,
                 passID: passID,
                 passCount: passCount,
-                metadata: metadata
+                metadata: metadata,
+                context: context
             )
 
         case .edit_text(let entry):
@@ -188,7 +195,8 @@ public struct StandardMutationApplier: Sendable {
                 planned: planned,
                 passID: passID,
                 passCount: passCount,
-                metadata: metadata
+                metadata: metadata,
+                context: context
             )
 
         case .copy(let entry):
@@ -225,14 +233,16 @@ public struct StandardMutationApplier: Sendable {
         planned: StandardPlannedMutation,
         passID: UUID,
         passCount: Int,
-        metadata: [String: String]
+        metadata: [String: String],
+        context: WriteExecutionContext
     ) throws -> WriteMutationRecord {
         let result = try StandardWriter(
             entry.target
         ).write(
             entry.content,
-            encoding: entry.encoding,
-            options: entry.options
+            encoding: entry.encoding.foundation,
+            options: entry.options,
+            context: context
         )
 
         return result.mutationRecord(
@@ -252,14 +262,16 @@ public struct StandardMutationApplier: Sendable {
         planned: StandardPlannedMutation,
         passID: UUID,
         passCount: Int,
-        metadata: [String: String]
+        metadata: [String: String],
+        context: WriteExecutionContext
     ) throws -> WriteMutationRecord {
         let result = try StandardWriter(
             entry.target
         ).write(
             entry.content,
-            encoding: entry.encoding,
-            options: entry.options
+            encoding: entry.encoding.foundation,
+            options: entry.options,
+            context: context
         )
 
         return result.mutationRecord(
@@ -279,7 +291,8 @@ public struct StandardMutationApplier: Sendable {
         planned: StandardPlannedMutation,
         passID: UUID,
         passCount: Int,
-        metadata: [String: String]
+        metadata: [String: String],
+        context: WriteExecutionContext
     ) throws -> WriteMutationRecord {
         guard let editPlan = planned.editPlan,
               let editBatch = planned.editBatch
@@ -297,7 +310,8 @@ public struct StandardMutationApplier: Sendable {
         let result = try StandardEditor(
             entry.target
         ).apply(
-            applyPlan
+            applyPlan,
+            context: context
         )
 
         return result.mutationRecord(
@@ -510,13 +524,13 @@ private extension StandardPlannedMutation {
     var encoding: String.Encoding {
         switch entry {
         case .create_text(let entry):
-            return entry.encoding
+            return entry.encoding.foundation
 
         case .replace_text(let entry):
-            return entry.encoding
+            return entry.encoding.foundation
 
         case .edit_text(let entry):
-            return entry.options.encoding
+            return entry.options.encoding.foundation
 
         case .copy:
             return .utf8

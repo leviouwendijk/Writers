@@ -1,6 +1,7 @@
 import Difference
 import Foundation
 import IO
+import Readers
 
 public struct StandardMutationPlanner: Sendable {
     public init() {}
@@ -79,7 +80,7 @@ public struct StandardMutationPlanner: Sendable {
     ) throws -> StandardPlannedMutation {
         let before = try StandardResourceState.read(
             at: entry.target,
-            encoding: entry.encoding
+            encoding: entry.encoding.foundation
         )
 
         if before.exists {
@@ -90,7 +91,7 @@ public struct StandardMutationPlanner: Sendable {
 
         let after = StandardResourceState.text(
             entry.content,
-            encoding: entry.encoding
+            encoding: entry.encoding.foundation
         )
         let diff = textDiff(
             before: before,
@@ -101,7 +102,7 @@ public struct StandardMutationPlanner: Sendable {
             entry.target
         ).preflight.string(
             entry.content,
-            encoding: entry.encoding,
+            encoding: entry.encoding.foundation,
             options: entry.options
         )
 
@@ -119,7 +120,7 @@ public struct StandardMutationPlanner: Sendable {
                 target: entry.target,
                 before: before,
                 after: after,
-                encoding: entry.encoding
+                encoding: entry.encoding.foundation
             ),
             warnings: warnings(
                 diff: diff
@@ -133,7 +134,7 @@ public struct StandardMutationPlanner: Sendable {
     ) throws -> StandardPlannedMutation {
         let before = try StandardResourceState.read(
             at: entry.target,
-            encoding: entry.encoding
+            encoding: entry.encoding.foundation
         )
 
         switch (
@@ -159,7 +160,7 @@ public struct StandardMutationPlanner: Sendable {
 
         let after = StandardResourceState.text(
             entry.content,
-            encoding: entry.encoding
+            encoding: entry.encoding.foundation
         )
         let diff = textDiff(
             before: before,
@@ -170,7 +171,7 @@ public struct StandardMutationPlanner: Sendable {
             entry.target
         ).preflight.string(
             entry.content,
-            encoding: entry.encoding,
+            encoding: entry.encoding.foundation,
             options: entry.options
         )
 
@@ -188,7 +189,7 @@ public struct StandardMutationPlanner: Sendable {
                 target: entry.target,
                 before: before,
                 after: after,
-                encoding: entry.encoding
+                encoding: entry.encoding.foundation
             ),
             warnings: warnings(
                 diff: diff
@@ -202,7 +203,7 @@ public struct StandardMutationPlanner: Sendable {
     ) throws -> StandardPlannedMutation {
         let before = try StandardResourceState.read(
             at: entry.target,
-            encoding: entry.options.encoding
+            encoding: entry.options.encoding.foundation
         )
 
         _ = try before.requireText(
@@ -218,11 +219,11 @@ public struct StandardMutationPlanner: Sendable {
             entry.target
         ).batch(
             editPlan,
-            encoding: entry.options.encoding
+            encoding: entry.options.encoding.foundation
         )
         let after = StandardResourceState.text(
             editBatch.result.editedContent,
-            encoding: entry.options.encoding
+            encoding: entry.options.encoding.foundation
         )
         let diff = WriteMutationDifferenceSummary(
             editBatch.result.difference
@@ -243,7 +244,7 @@ public struct StandardMutationPlanner: Sendable {
                 target: entry.target,
                 before: before,
                 after: after,
-                encoding: entry.options.encoding
+                encoding: entry.options.encoding.foundation
             ),
             warnings: warnings(
                 diff: diff

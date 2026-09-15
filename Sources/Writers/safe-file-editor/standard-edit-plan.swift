@@ -1,4 +1,4 @@
-public struct StandardEditPlan: Sendable, Hashable {
+public struct StandardEditPlan: Sendable, Codable, Hashable {
     public let operations: [StandardEditOperation]
     public let mode: StandardEditMode
     public let constraint: StandardEditConstraint

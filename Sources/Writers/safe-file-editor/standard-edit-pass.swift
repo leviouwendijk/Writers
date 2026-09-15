@@ -1,4 +1,5 @@
 import Foundation
+import Readers
 
 public enum StandardEditPassError: Error, Sendable, LocalizedError {
     case empty_pass
@@ -364,7 +365,7 @@ public struct StandardEditPass: Sendable {
         try .init(
             plan: plan(
                 edits,
-                encoding: options.encoding,
+                encoding: options.encoding.foundation,
                 metadata: metadata
             ),
             options: options
@@ -538,7 +539,7 @@ private extension StandardEditPass {
         for entry in applyPlan.plan.entries {
             let current = try IntegratedReader.text(
                 at: entry.target,
-                encoding: applyPlan.options.encoding,
+                encoding: applyPlan.options.encoding.foundation,
                 missingFileReturnsEmpty: true,
                 normalizeNewlines: false
             )

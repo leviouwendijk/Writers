@@ -1,4 +1,5 @@
 import Foundation
+import Readers
 
 public enum StandardMutationRollbackActionKind: String, Sendable, Codable, Hashable, CaseIterable {
     case none
@@ -8,7 +9,7 @@ public enum StandardMutationRollbackActionKind: String, Sendable, Codable, Hasha
     case move_resource
 }
 
-public enum StandardMutationRollbackAction: Sendable {
+public enum StandardMutationRollbackAction: Sendable, Codable, Hashable {
     case none
     case delete_created_file(StandardMutationDeleteCreatedFile)
     case restore_text(StandardMutationRestoreText)
@@ -58,7 +59,7 @@ public enum StandardMutationRollbackAction: Sendable {
     }
 }
 
-public struct StandardMutationDeleteCreatedFile: Sendable {
+public struct StandardMutationDeleteCreatedFile: Sendable, Codable, Hashable {
     public let target: URL
     public let requiredCurrentFingerprint: StandardContentFingerprint
 
@@ -71,10 +72,10 @@ public struct StandardMutationDeleteCreatedFile: Sendable {
     }
 }
 
-public struct StandardMutationRestoreText: Sendable {
+public struct StandardMutationRestoreText: Sendable, Codable, Hashable {
     public let target: URL
     public let content: String
-    public let encoding: String.Encoding
+    public let encoding: TextEncoding
     public let requiredCurrentFingerprint: StandardContentFingerprint?
 
     public init(
@@ -85,12 +86,12 @@ public struct StandardMutationRestoreText: Sendable {
     ) {
         self.target = target.standardizedFileURL
         self.content = content
-        self.encoding = encoding
+        self.encoding = TextEncoding(encoding)
         self.requiredCurrentFingerprint = requiredCurrentFingerprint
     }
 }
 
-public struct StandardMutationRestoreData: Sendable {
+public struct StandardMutationRestoreData: Sendable, Codable, Hashable {
     public let target: URL
     public let content: Data
     public let requiredCurrentFingerprint: StandardContentFingerprint?
@@ -107,7 +108,7 @@ public struct StandardMutationRestoreData: Sendable {
 }
 
 
-public struct StandardMutationMoveResource: Sendable {
+public struct StandardMutationMoveResource: Sendable, Codable, Hashable {
     public let source: URL
     public let destination: URL
     public let requiredSourceState: StandardMoveResourceState
@@ -142,7 +143,7 @@ public struct StandardMutationRollbackReport: Sendable, Codable, Hashable {
     }
 }
 
-public struct StandardMutationRollbackPlan: Sendable {
+public struct StandardMutationRollbackPlan: Sendable, Codable, Hashable {
     public let id: UUID
     public let source: UUID
     public let actions: [StandardMutationRollbackAction]

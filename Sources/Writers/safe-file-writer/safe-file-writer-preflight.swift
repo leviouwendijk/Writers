@@ -105,19 +105,22 @@ public enum WriteTargetPreflight {
 
     public static func prepare(
         _ target: URL,
-        options: SafeWriteOptions
+        options: SafeWriteOptions,
+        context: WriteExecutionContext = .init()
     ) throws -> WritePreflightResult {
         try prepare(
             [
                 target,
             ],
-            options: options
+            options: options,
+            context: context
         )
     }
 
     public static func prepare(
         _ targets: [URL],
-        options: SafeWriteOptions
+        options: SafeWriteOptions,
+        context: WriteExecutionContext = .init()
     ) throws -> WritePreflightResult {
         let inspection = try inspect(
             targets,
@@ -140,7 +143,8 @@ public enum WriteTargetPreflight {
         let backups = try makeBackups(
             for: inspection.collisions,
             policy: scanResult.backupPolicy,
-            options: options
+            options: options,
+            context: context
         )
 
         return result(
@@ -237,7 +241,8 @@ public enum WriteTargetPreflight {
     private static func makeBackups(
         for collisions: [CollisionPayload],
         policy: WriteBackupPolicy,
-        options: SafeWriteOptions
+        options: SafeWriteOptions,
+        context: WriteExecutionContext
     ) throws -> [WriteBackupRecord] {
         let ts = SafeFile(
             URL(fileURLWithPath: "/dev/null")
@@ -250,6 +255,7 @@ public enum WriteTargetPreflight {
                 for: collision,
                 policy: policy,
                 options: options,
+                context: context,
                 timestamp: ts
             ) {
                 records.append(
@@ -265,6 +271,7 @@ public enum WriteTargetPreflight {
         for collision: CollisionPayload,
         policy: WriteBackupPolicy,
         options: SafeWriteOptions,
+        context: WriteExecutionContext,
         timestamp: String
     ) throws -> WriteBackupRecord? {
         let fileSystem = FileSystem.default
@@ -354,7 +361,7 @@ public enum WriteTargetPreflight {
             )
 
         case .external_store:
-            guard let backupStore = options.backupStore else {
+            guard let backupStore = context.backupStore else {
                 throw WriteBackupStoreError.store_required(
                     policy: policy,
                     target: collision.target
@@ -419,23 +426,27 @@ public enum WriteTargetPreflight {
 public enum WritePreflight {
     public static func run(
         _ target: URL,
-        options: SafeWriteOptions
+        options: SafeWriteOptions,
+        context: WriteExecutionContext = .init()
     ) throws -> WritePreflightResult {
         try run(
             [
                 target,
             ],
-            options: options
+            options: options,
+            context: context
         )
     }
 
     public static func run(
         _ targets: [URL],
-        options: SafeWriteOptions
+        options: SafeWriteOptions,
+        context: WriteExecutionContext = .init()
     ) throws -> WritePreflightResult {
         try WriteTargetPreflight.prepare(
             targets,
-            options: options
+            options: options,
+            context: context
         )
     }
 }

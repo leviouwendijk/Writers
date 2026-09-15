@@ -1,8 +1,9 @@
 import Difference
 import Foundation
 import IO
+import Readers
 
-public struct StandardMutationRollbackApplyOptions: Sendable {
+public struct StandardMutationRollbackApplyOptions: Sendable, Codable, Hashable {
     public var options: SafeWriteOptions
 
     public init(
@@ -18,7 +19,7 @@ public enum StandardMutationRollbackStatus: String, Sendable, Codable, Hashable,
     case failed
 }
 
-public struct StandardMutationRollbackFailure: Sendable {
+public struct StandardMutationRollbackFailure: Sendable, Codable, Hashable {
     public let actionIndex: Int
     public let target: URL?
     public let message: String
@@ -34,7 +35,7 @@ public struct StandardMutationRollbackFailure: Sendable {
     }
 }
 
-public struct StandardMutationRollbackResult: Sendable {
+public struct StandardMutationRollbackResult: Sendable, Codable, Hashable {
     public let id: UUID
     public let plan: StandardMutationRollbackPlan
     public let status: StandardMutationRollbackStatus
@@ -64,7 +65,8 @@ public struct StandardMutationRollbackApplier: Sendable {
 
     public func apply(
         _ plan: StandardMutationRollbackPlan,
-        options: StandardMutationRollbackApplyOptions = .init()
+        options: StandardMutationRollbackApplyOptions = .init(),
+        context: WriteExecutionContext = .init()
     ) -> StandardMutationRollbackResult {
         var records: [WriteMutationRecord] = []
         var applied: [Int] = []
@@ -79,7 +81,8 @@ public struct StandardMutationRollbackApplier: Sendable {
                     action,
                     index: index,
                     plan: plan,
-                    options: options
+                    options: options,
+                    context: context
                 ) {
                     records.append(
                         record
@@ -124,7 +127,8 @@ public struct StandardMutationRollbackApplier: Sendable {
         _ action: StandardMutationRollbackAction,
         index: Int,
         plan: StandardMutationRollbackPlan,
-        options: StandardMutationRollbackApplyOptions
+        options: StandardMutationRollbackApplyOptions,
+        context: WriteExecutionContext
     ) throws -> WriteMutationRecord? {
         switch action {
         case .none:
@@ -142,7 +146,8 @@ public struct StandardMutationRollbackApplier: Sendable {
                 action,
                 index: index,
                 plan: plan,
-                options: options
+                options: options,
+                context: context
             )
 
         case .restore_data(let action):
@@ -150,7 +155,8 @@ public struct StandardMutationRollbackApplier: Sendable {
                 action,
                 index: index,
                 plan: plan,
-                options: options
+                options: options,
+                context: context
             )
 
         case .move_resource(let action):
@@ -210,11 +216,12 @@ public struct StandardMutationRollbackApplier: Sendable {
         _ action: StandardMutationRestoreText,
         index: Int,
         plan: StandardMutationRollbackPlan,
-        options: StandardMutationRollbackApplyOptions
+        options: StandardMutationRollbackApplyOptions,
+        context: WriteExecutionContext
     ) throws -> WriteMutationRecord {
         let before = try StandardResourceState.read(
             at: action.target,
-            encoding: action.encoding
+            encoding: action.encoding.foundation
         )
 
         try requireExpectedCurrent(
@@ -227,8 +234,9 @@ public struct StandardMutationRollbackApplier: Sendable {
             action.target
         ).write(
             action.content,
-            encoding: action.encoding,
-            options: options.options
+            encoding: action.encoding.foundation,
+            options: options.options,
+            context: context
         )
 
         return writeResult.mutationRecord(
@@ -252,7 +260,8 @@ public struct StandardMutationRollbackApplier: Sendable {
         _ action: StandardMutationRestoreData,
         index: Int,
         plan: StandardMutationRollbackPlan,
-        options: StandardMutationRollbackApplyOptions
+        options: StandardMutationRollbackApplyOptions,
+        context: WriteExecutionContext
     ) throws -> WriteMutationRecord {
         let before = try StandardResourceState.read(
             at: action.target
@@ -268,7 +277,8 @@ public struct StandardMutationRollbackApplier: Sendable {
             action.target
         ).write(
             action.content,
-            options: options.options
+            options: options.options,
+            context: context
         )
 
         return writeResult.mutationRecord(
@@ -409,11 +419,13 @@ public extension WriteRollbackAPI {
     @discardableResult
     func apply(
         _ plan: StandardMutationRollbackPlan,
-        options: StandardMutationRollbackApplyOptions = .init()
+        options: StandardMutationRollbackApplyOptions = .init(),
+        context: WriteExecutionContext = .init()
     ) -> StandardMutationRollbackResult {
         StandardMutationRollbackApplier().apply(
             plan,
-            options: options
+            options: options,
+            context: context
         )
     }
 }

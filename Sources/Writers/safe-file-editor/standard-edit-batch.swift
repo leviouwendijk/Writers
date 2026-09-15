@@ -1,6 +1,7 @@
 import Difference
 import Foundation
 import Position
+import Readers
 
 public enum StandardEditBatchError: Error, Sendable, LocalizedError {
     case unsupported_mode(StandardEditMode)
@@ -572,7 +573,7 @@ public extension StandardEditor {
             editPlan: editPlan,
             batch: batch(
                 editPlan,
-                encoding: options.encoding
+                encoding: options.encoding.foundation
             ),
             options: options
         )
@@ -580,11 +581,12 @@ public extension StandardEditor {
 
     @discardableResult
     func apply(
-        _ applyPlan: StandardEditBatchApplyPlan
+        _ applyPlan: StandardEditBatchApplyPlan,
+        context: WriteExecutionContext = .init()
     ) throws -> StandardEditResult {
         let current = try IntegratedReader.text(
             at: url,
-            encoding: applyPlan.options.encoding,
+            encoding: applyPlan.options.encoding.foundation,
             missingFileReturnsEmpty: true,
             normalizeNewlines: false
         )
@@ -605,7 +607,8 @@ public extension StandardEditor {
                 editPlan: applyPlan.editPlan,
                 preview: applyPlan.batch.result,
                 options: applyPlan.options
-            )
+            ),
+            context: context
         )
     }
 }

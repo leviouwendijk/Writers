@@ -26,11 +26,13 @@ public struct MutationRollbackAPI: Sendable {
     @discardableResult
     public func apply(
         _ plan: StandardMutationRollbackPlan,
-        options: StandardMutationRollbackApplyOptions = .init()
+        options: StandardMutationRollbackApplyOptions = .init(),
+        context: WriteExecutionContext = .init()
     ) -> StandardMutationRollbackResult {
         StandardMutationRollbackApplier().apply(
             plan,
-            options: options
+            options: options,
+            context: context
         )
     }
 }

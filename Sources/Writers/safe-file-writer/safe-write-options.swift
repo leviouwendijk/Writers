@@ -1,6 +1,6 @@
 public typealias SafeWriteOptions = WriteOptions
 
-public struct WriteOptions: Sendable {
+public struct WriteOptions: Sendable, Codable, Hashable {
     public var existingFilePolicy: ExistingFilePolicy
 
     public var makeBackupOnOverride: Bool
@@ -16,7 +16,6 @@ public struct WriteOptions: Sendable {
     public var maxBackupSets: Int?
 
     public var backupPolicy: WriteBackupPolicy
-    public var backupStore: (any WriteBackupStore)?
 
     public var stalePlanPolicy: WriteExecutionStalePlanPolicy
 
@@ -33,7 +32,6 @@ public struct WriteOptions: Sendable {
         backupSetPrefix: String = "overwrite_",
         maxBackupSets: Int? = nil,
         backupPolicy: WriteBackupPolicy = .automatic,
-        backupStore: (any WriteBackupStore)? = nil,
         stalePlanPolicy: WriteExecutionStalePlanPolicy = .require_current_matches_plan
     ) {
         self.existingFilePolicy = existingFilePolicy
@@ -48,7 +46,6 @@ public struct WriteOptions: Sendable {
         self.backupSetPrefix = backupSetPrefix
         self.maxBackupSets = maxBackupSets
         self.backupPolicy = backupPolicy
-        self.backupStore = backupStore
         self.stalePlanPolicy = stalePlanPolicy
     }
 
@@ -76,7 +73,6 @@ public struct WriteOptions: Sendable {
         backupSetPrefix: String = "overwrite_",
         maxBackupSets: Int? = nil,
         backupPolicy: WriteBackupPolicy = .automatic,
-        backupStore: (any WriteBackupStore)? = nil,
         stalePlanPolicy: WriteExecutionStalePlanPolicy = .require_current_matches_plan
     ) {
         self.init(
@@ -92,7 +88,6 @@ public struct WriteOptions: Sendable {
             backupSetPrefix: backupSetPrefix,
             maxBackupSets: maxBackupSets,
             backupPolicy: backupPolicy,
-            backupStore: backupStore,
             stalePlanPolicy: stalePlanPolicy
         )
     }
@@ -131,7 +126,6 @@ public extension WriteOptions {
 
     static func overwriting(
         backupPolicy: WriteBackupPolicy,
-        backupStore: (any WriteBackupStore)? = nil,
         maxBackupSets: Int? = 10
     ) -> Self {
         .init(
@@ -139,8 +133,7 @@ public extension WriteOptions {
             makeBackupOnOverride: backupPolicy != .disabled,
             whitespaceOnlyIsBlank: true,
             maxBackupSets: maxBackupSets,
-            backupPolicy: backupPolicy,
-            backupStore: backupStore
+            backupPolicy: backupPolicy
         )
     }
 }

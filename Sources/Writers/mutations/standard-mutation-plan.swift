@@ -1,6 +1,6 @@
 import Foundation
 
-public struct StandardMutationPlan: Sendable, Identifiable {
+public struct StandardMutationPlan: Sendable, Codable, Hashable, Identifiable {
     public let id: UUID
     public let createdAt: Date
     public let entries: [StandardPlannedMutation]
@@ -40,7 +40,7 @@ public struct StandardMutationPlan: Sendable, Identifiable {
     }
 }
 
-public struct StandardPlannedMutation: Sendable, Identifiable {
+public struct StandardPlannedMutation: Sendable, Codable, Hashable, Identifiable {
     public let id: UUID
     public let index: Int
     public let entry: StandardMutationEntry

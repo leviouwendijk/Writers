@@ -22,22 +22,26 @@ public extension MutationWriter {
     @discardableResult
     static func apply(
         _ plan: StandardMutationPlan,
-        options: StandardMutationApplyOptions = .init()
+        options: StandardMutationApplyOptions = .init(),
+        context: WriteExecutionContext = .init()
     ) -> StandardMutationResult {
         Self().mutations.apply(
             plan,
-            options: options
+            options: options,
+            context: context
         )
     }
 
     @discardableResult
     static func rollback(
         _ plan: StandardMutationRollbackPlan,
-        options: StandardMutationRollbackApplyOptions = .init()
+        options: StandardMutationRollbackApplyOptions = .init(),
+        context: WriteExecutionContext = .init()
     ) -> StandardMutationRollbackResult {
         Self().rollbacks.apply(
             plan,
-            options: options
+            options: options,
+            context: context
         )
     }
 }

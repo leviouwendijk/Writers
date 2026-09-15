@@ -12,6 +12,7 @@ enum WritersFlowSuite: TestFlowRegistry {
         backupPruneFlow,
         backupRecordContractFlow,
         externalBackupStoreFlow,
+        durableMutationValuesFlow,
         preflightFlow,
         targetPreflightContractFlow,
         writeContractFlow,
@@ -210,8 +211,10 @@ private extension WritersFlowSuite {
                     "stored after\n",
                     options: .overwriting(
                         backupPolicy: .external_store,
-                        backupStore: store,
                         maxBackupSets: nil
+                    ),
+                    context: .init(
+                        backupStore: store
                     )
                 )
 
@@ -274,7 +277,6 @@ private extension WritersFlowSuite {
                         "after\n",
                         options: .overwriting(
                             backupPolicy: .external_store,
-                            backupStore: nil,
                             maxBackupSets: nil
                         )
                     )
@@ -726,7 +728,6 @@ private extension WritersFlowSuite {
                         ],
                         options: .overwriting(
                             backupPolicy: .external_store,
-                            backupStore: nil,
                             maxBackupSets: nil
                         )
                     )
@@ -2637,7 +2638,9 @@ private extension WritersFlowSuite {
                 let result = try writer.write(
                     "after\n",
                     options: .overwriting(
-                        backupPolicy: .external_store,
+                        backupPolicy: .external_store
+                    ),
+                    context: .init(
                         backupStore: store
                     )
                 )

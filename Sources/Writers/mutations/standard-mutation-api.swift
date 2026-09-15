@@ -26,11 +26,13 @@ public struct StandardMutationAPI: Sendable {
     @discardableResult
     public func apply(
         _ plan: StandardMutationPlan,
-        options: StandardMutationApplyOptions = .init()
+        options: StandardMutationApplyOptions = .init(),
+        context: WriteExecutionContext = .init()
     ) -> StandardMutationResult {
         StandardMutationApplier().apply(
             plan,
-            options: options
+            options: options,
+            context: context
         )
     }
 }
