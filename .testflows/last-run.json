@@ -3,12 +3,12 @@
   "failed_names" : [
 
   ],
-  "generated_at" : "2026-08-28T15:43:23Z",
-  "passed" : 34,
+  "generated_at" : "2026-10-06T18:56:17Z",
+  "passed" : 36,
   "results" : [
     {
       "display_name" : "write-mutation",
-      "duration_seconds" : 0.0061910152435302734,
+      "duration_seconds" : 0.00598299503326416,
       "name" : "write-mutation",
       "status" : "passed",
       "tags" : [
@@ -19,7 +19,7 @@
     },
     {
       "display_name" : "backup-policy",
-      "duration_seconds" : 0.0038219690322875977,
+      "duration_seconds" : 0.005030035972595215,
       "name" : "backup-policy",
       "status" : "passed",
       "tags" : [
@@ -29,7 +29,7 @@
     },
     {
       "display_name" : "backup-prune",
-      "duration_seconds" : 0.0011949539184570312,
+      "duration_seconds" : 0.001551985740661621,
       "name" : "backup-prune",
       "status" : "passed",
       "tags" : [
@@ -39,7 +39,7 @@
     },
     {
       "display_name" : "backup-record-contract",
-      "duration_seconds" : 0.005208015441894531,
+      "duration_seconds" : 0.005568981170654297,
       "name" : "backup-record-contract",
       "status" : "passed",
       "tags" : [
@@ -50,7 +50,7 @@
     },
     {
       "display_name" : "external-backup-store",
-      "duration_seconds" : 0.0024089813232421875,
+      "duration_seconds" : 0.0029630661010742188,
       "name" : "external-backup-store",
       "status" : "passed",
       "tags" : [
@@ -60,8 +60,20 @@
       ]
     },
     {
+      "display_name" : "durable-mutation-values",
+      "duration_seconds" : 0.012874960899353027,
+      "name" : "durable-mutation-values",
+      "status" : "passed",
+      "tags" : [
+        "backup",
+        "codable",
+        "hashable",
+        "mutation"
+      ]
+    },
+    {
       "display_name" : "preflight",
-      "duration_seconds" : 0.0024110078811645508,
+      "duration_seconds" : 0.0025900602340698242,
       "name" : "preflight",
       "status" : "passed",
       "tags" : [
@@ -72,7 +84,7 @@
     },
     {
       "display_name" : "target-preflight-contract",
-      "duration_seconds" : 0.0030889511108398438,
+      "duration_seconds" : 0.0034710168838500977,
       "name" : "target-preflight-contract",
       "status" : "passed",
       "tags" : [
@@ -82,7 +94,7 @@
     },
     {
       "display_name" : "write-contract",
-      "duration_seconds" : 0.0031349658966064453,
+      "duration_seconds" : 0.003610968589782715,
       "name" : "write-contract",
       "status" : "passed",
       "tags" : [
@@ -94,7 +106,7 @@
     },
     {
       "display_name" : "write-execution-contract",
-      "duration_seconds" : 0.0036929845809936523,
+      "duration_seconds" : 0.0039920806884765625,
       "name" : "write-execution-contract",
       "status" : "passed",
       "tags" : [
@@ -105,7 +117,7 @@
     },
     {
       "display_name" : "stale-plan-contract",
-      "duration_seconds" : 0.003598928451538086,
+      "duration_seconds" : 0.0036939382553100586,
       "name" : "stale-plan-contract",
       "status" : "passed",
       "tags" : [
@@ -116,7 +128,7 @@
     },
     {
       "display_name" : "overwrite-conflict",
-      "duration_seconds" : 0.0012140274047851562,
+      "duration_seconds" : 0.0013649463653564453,
       "name" : "overwrite-conflict",
       "status" : "passed",
       "tags" : [
@@ -126,7 +138,7 @@
     },
     {
       "display_name" : "edit-preview-and-rollback",
-      "duration_seconds" : 0.0032619237899780273,
+      "duration_seconds" : 0.0030859708786010742,
       "name" : "edit-preview-and-rollback",
       "status" : "passed",
       "tags" : [
@@ -137,7 +149,7 @@
     },
     {
       "display_name" : "edit-record-store",
-      "duration_seconds" : 0.003908991813659668,
+      "duration_seconds" : 0.002786993980407715,
       "name" : "edit-record-store",
       "status" : "passed",
       "tags" : [
@@ -149,7 +161,7 @@
     },
     {
       "display_name" : "record-storage",
-      "duration_seconds" : 0.006989002227783203,
+      "duration_seconds" : 0.006768941879272461,
       "name" : "record-storage",
       "status" : "passed",
       "tags" : [
@@ -161,7 +173,7 @@
     },
     {
       "display_name" : "payload-policy-contract",
-      "duration_seconds" : 0.005200982093811035,
+      "duration_seconds" : 0.005120038986206055,
       "name" : "payload-policy-contract",
       "status" : "passed",
       "tags" : [
@@ -171,7 +183,7 @@
     },
     {
       "display_name" : "storage-protocol-contract",
-      "duration_seconds" : 0.004205942153930664,
+      "duration_seconds" : 0.004366040229797363,
       "name" : "storage-protocol-contract",
       "status" : "passed",
       "tags" : [
@@ -182,7 +194,7 @@
     },
     {
       "display_name" : "storage-location-contract",
-      "duration_seconds" : 0.001732945442199707,
+      "duration_seconds" : 0.0016950368881225586,
       "name" : "storage-location-contract",
       "status" : "passed",
       "tags" : [
@@ -194,7 +206,7 @@
     },
     {
       "display_name" : "mutation-surface-contract",
-      "duration_seconds" : 0.00024902820587158203,
+      "duration_seconds" : 0.00023090839385986328,
       "name" : "mutation-surface-contract",
       "status" : "passed",
       "tags" : [
@@ -206,7 +218,7 @@
     },
     {
       "display_name" : "rollback-surface-contract",
-      "duration_seconds" : 0.00303494930267334,
+      "duration_seconds" : 0.002825021743774414,
       "name" : "rollback-surface-contract",
       "status" : "passed",
       "tags" : [
@@ -217,7 +229,7 @@
     },
     {
       "display_name" : "edit-merge",
-      "duration_seconds" : 0.0026869773864746094,
+      "duration_seconds" : 0.002534031867980957,
       "name" : "edit-merge",
       "status" : "passed",
       "tags" : [
@@ -228,7 +240,7 @@
     },
     {
       "display_name" : "mutation-rollback",
-      "duration_seconds" : 0.00831305980682373,
+      "duration_seconds" : 0.008400917053222656,
       "name" : "mutation-rollback",
       "status" : "passed",
       "tags" : [
@@ -239,7 +251,7 @@
     },
     {
       "display_name" : "rollback-plan-contract",
-      "duration_seconds" : 0.004307985305786133,
+      "duration_seconds" : 0.0044029951095581055,
       "name" : "rollback-plan-contract",
       "status" : "passed",
       "tags" : [
@@ -250,7 +262,7 @@
     },
     {
       "display_name" : "binary-rollback-contract",
-      "duration_seconds" : 0.005803108215332031,
+      "duration_seconds" : 0.005222916603088379,
       "name" : "binary-rollback-contract",
       "status" : "passed",
       "tags" : [
@@ -261,7 +273,7 @@
     },
     {
       "display_name" : "mutation-snapshot",
-      "duration_seconds" : 0.002908945083618164,
+      "duration_seconds" : 0.002702951431274414,
       "name" : "mutation-snapshot",
       "status" : "passed",
       "tags" : [
@@ -271,7 +283,7 @@
     },
     {
       "display_name" : "edit-constraints",
-      "duration_seconds" : 0.008345961570739746,
+      "duration_seconds" : 0.007972955703735352,
       "name" : "edit-constraints",
       "status" : "passed",
       "tags" : [
@@ -284,8 +296,20 @@
       ]
     },
     {
+      "display_name" : "position-range-edit",
+      "duration_seconds" : 0.0002110004425048828,
+      "name" : "position-range-edit",
+      "status" : "passed",
+      "tags" : [
+        "edit",
+        "position",
+        "range",
+        "snapshot"
+      ]
+    },
+    {
       "display_name" : "edit-batch",
-      "duration_seconds" : 0.005611062049865723,
+      "duration_seconds" : 0.00531005859375,
       "name" : "edit-batch",
       "status" : "passed",
       "tags" : [
@@ -298,7 +322,7 @@
     },
     {
       "display_name" : "edit-pass",
-      "duration_seconds" : 0.01751697063446045,
+      "duration_seconds" : 0.01721203327178955,
       "name" : "edit-pass",
       "status" : "passed",
       "tags" : [
@@ -310,7 +334,7 @@
     },
     {
       "display_name" : "standard-mutation",
-      "duration_seconds" : 0.00807499885559082,
+      "duration_seconds" : 0.007388949394226074,
       "name" : "standard-mutation",
       "status" : "passed",
       "tags" : [
@@ -324,7 +348,7 @@
     },
     {
       "display_name" : "standard-rollback",
-      "duration_seconds" : 0.010470986366271973,
+      "duration_seconds" : 0.009536027908325195,
       "name" : "standard-rollback",
       "status" : "passed",
       "tags" : [
@@ -335,7 +359,7 @@
     },
     {
       "display_name" : "standard-rollback-hardening",
-      "duration_seconds" : 0.005195021629333496,
+      "duration_seconds" : 0.004868030548095703,
       "name" : "standard-rollback-hardening",
       "status" : "passed",
       "tags" : [
@@ -348,7 +372,7 @@
     },
     {
       "display_name" : "standard-mutation-automatic-rollback",
-      "duration_seconds" : 0.01034700870513916,
+      "duration_seconds" : 0.009757041931152344,
       "name" : "standard-mutation-automatic-rollback",
       "status" : "passed",
       "tags" : [
@@ -361,7 +385,7 @@
     },
     {
       "display_name" : "writer-facades",
-      "duration_seconds" : 0.005041003227233887,
+      "duration_seconds" : 0.004593014717102051,
       "name" : "writer-facades",
       "status" : "passed",
       "tags" : [
@@ -372,7 +396,7 @@
     },
     {
       "display_name" : "standard-move",
-      "duration_seconds" : 0.005375027656555176,
+      "duration_seconds" : 0.006642937660217285,
       "name" : "standard-move",
       "status" : "passed",
       "tags" : [
@@ -385,7 +409,7 @@
     },
     {
       "display_name" : "workspace-writer",
-      "duration_seconds" : 0.010190963745117188,
+      "duration_seconds" : 0.0100480318069458,
       "name" : "workspace-writer",
       "status" : "passed",
       "tags" : [
@@ -398,5 +422,5 @@
   ],
   "skipped" : 0,
   "title" : "Writers flow tests",
-  "total" : 34
+  "total" : 36
 }

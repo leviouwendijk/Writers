@@ -31,7 +31,7 @@ let package = Package(
         .package(url: "https://github.com/leviouwendijk/Readers.git", branch: "master"),
         .package(url: "https://github.com/leviouwendijk/Path.git", branch: "master"),
 
-        .package(url: "https://github.com/leviouwendijk/TestFlows.git", branch: "master"),
+        .package(url: "https://github.com/leviouwendijk/Testing.git", branch: "master"),
     ],
     targets: [
         .target(
@@ -52,7 +52,7 @@ let package = Package(
                 .product(name: "Position", package: "Position"),
                 .product(name: "Readers", package: "Readers"),
                 .product(name: "Path", package: "Path"),
-                .product(name: "TestFlows", package: "TestFlows"),
+                .product(name: "Testing", package: "Testing"),
             ],
             // sources: ["WritersTestFlows"]
         ),

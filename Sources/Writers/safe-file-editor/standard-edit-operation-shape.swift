@@ -79,7 +79,9 @@ public extension StandardEditOperation {
              .prepend,
              .replaceFirst,
              .replaceAll,
-             .replaceUnique:
+             .replaceUnique,
+             .replaceRange,
+             .replaceRangeGuarded:
             return
         }
     }

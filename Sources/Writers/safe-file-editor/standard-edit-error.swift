@@ -22,6 +22,17 @@ public enum StandardEditError: Error, LocalizedError {
         actual: [String]
     )
 
+    case invalidPositionRange(PositionRange)
+    case positionRangeOutOfBounds(
+        PositionRange,
+        valid: PositionRange
+    )
+    case positionRangeMismatch(
+        range: PositionRange,
+        expected: String,
+        actual: String
+    )
+
     case insertionSiteMismatch(
         line: Int,
         expectedBefore: [String],
@@ -65,6 +76,15 @@ public enum StandardEditError: Error, LocalizedError {
 
         case .lineRangeMismatch(let range, let expected, let actual):
             return "Edit line range \(range) did not match expected content. Expected \(expected.count) line(s), found \(actual.count) line(s)."
+
+        case .invalidPositionRange(let range):
+            return "Edit position range \(range) must be a non-empty forward half-open character range."
+
+        case .positionRangeOutOfBounds(let range, let valid):
+            return "Edit position range \(range) is out of bounds. Valid character range: \(valid)."
+
+        case .positionRangeMismatch(let range, let expected, let actual):
+            return "Edit position range \(range) did not match expected content. Expected \(String(reflecting: expected)), found \(String(reflecting: actual))."
 
         case .insertionSiteMismatch(let line, let expectedBefore, let actualBefore, let expectedAfter, let actualAfter):
             return "Edit insertion site \(line) did not match expected context. Expected before \(expectedBefore.count) line(s), found \(actualBefore.count); expected after \(expectedAfter.count) line(s), found \(actualAfter.count)."

@@ -103,6 +103,8 @@ public struct StandardEditReport: Sendable, Codable, Hashable {
 
             case .replace_first,
                  .replace_unique,
+                 .replace_range,
+                 .replace_range_guarded,
                  .replace_line,
                  .replace_line_guarded,
                  .insert_lines,
@@ -121,7 +123,9 @@ public struct StandardEditReport: Sendable, Codable, Hashable {
             switch operation {
             case .replace_first,
                  .replace_all,
-                 .replace_unique:
+                 .replace_unique,
+                 .replace_range,
+                 .replace_range_guarded:
                 return true
 
             case .replace_entire_file,

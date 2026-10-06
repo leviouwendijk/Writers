@@ -110,6 +110,43 @@ public extension StandardEditOperation {
             )
             return edited
 
+        case .replaceRange(let range, let replacement):
+            let resolved = try Self.resolvePositionRange(
+                range,
+                in: content
+            )
+
+            var edited = content
+            edited.replaceSubrange(
+                resolved,
+                with: replacement
+            )
+            return edited
+
+        case .replaceRangeGuarded(let range, let expected, let replacement):
+            let resolved = try Self.resolvePositionRange(
+                range,
+                in: content
+            )
+            let actual = String(
+                content[resolved]
+            )
+
+            guard actual == expected else {
+                throw StandardEditError.positionRangeMismatch(
+                    range: range,
+                    expected: expected,
+                    actual: actual
+                )
+            }
+
+            var edited = content
+            edited.replaceSubrange(
+                resolved,
+                with: replacement
+            )
+            return edited
+
         case .replaceLine(let line, let replacement):
             try Self.validateLogicalLine(
                 replacement

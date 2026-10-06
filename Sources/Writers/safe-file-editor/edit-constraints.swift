@@ -105,6 +105,8 @@ public enum StandardEditOperationKind: String, Sendable, Codable, Hashable, Case
     case replace_first
     case replace_all
     case replace_unique
+    case replace_range
+    case replace_range_guarded
     case replace_line
     case replace_line_guarded
     case insert_lines
@@ -140,6 +142,8 @@ public struct StandardEditOperationSet: Sendable, Codable, Hashable {
 
     public static let precise = Self(
         [
+            .replace_range,
+            .replace_range_guarded,
             .replace_line,
             .replace_line_guarded,
             .insert_lines,
@@ -153,6 +157,7 @@ public struct StandardEditOperationSet: Sendable, Codable, Hashable {
 
     public static let guarded = Self(
         [
+            .replace_range_guarded,
             .replace_line_guarded,
             .insert_lines_guarded,
             .replace_lines_guarded,
@@ -305,6 +310,12 @@ public extension StandardEditOperation {
         case .replaceUnique:
             return .replace_unique
 
+        case .replaceRange:
+            return .replace_range
+
+        case .replaceRangeGuarded:
+            return .replace_range_guarded
+
         case .replaceLine:
             return .replace_line
 
@@ -333,7 +344,8 @@ public extension StandardEditOperation {
 
     var hasExistingLineGuard: Bool {
         switch self {
-        case .replaceLineGuarded,
+        case .replaceRangeGuarded,
+             .replaceLineGuarded,
              .replaceLinesGuarded,
              .deleteLinesGuarded:
             return true
@@ -344,6 +356,7 @@ public extension StandardEditOperation {
              .replaceFirst,
              .replaceAll,
              .replaceUnique,
+             .replaceRange,
              .replaceLine,
              .insertLines,
              .insertLinesGuarded,
@@ -364,6 +377,8 @@ public extension StandardEditOperation {
              .replaceFirst,
              .replaceAll,
              .replaceUnique,
+             .replaceRange,
+             .replaceRangeGuarded,
              .replaceLine,
              .replaceLineGuarded,
              .insertLines,
@@ -377,7 +392,9 @@ public extension StandardEditOperation {
 
     var touchesExistingLines: Bool {
         switch self {
-        case .replaceLine,
+        case .replaceRange,
+             .replaceRangeGuarded,
+             .replaceLine,
              .replaceLineGuarded,
              .replaceLines,
              .replaceLinesGuarded,
@@ -409,6 +426,8 @@ public extension StandardEditOperation {
              .replaceFirst,
              .replaceAll,
              .replaceUnique,
+             .replaceRange,
+             .replaceRangeGuarded,
              .replaceLine,
              .replaceLineGuarded,
              .replaceLines,
@@ -429,7 +448,9 @@ public extension StandardEditOperation {
              .replaceUnique:
             return true
 
-        case .replaceLine,
+        case .replaceRange,
+             .replaceRangeGuarded,
+             .replaceLine,
              .replaceLineGuarded,
              .insertLines,
              .insertLinesGuarded,

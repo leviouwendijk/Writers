@@ -1,5 +1,5 @@
 import Foundation
-import TestFlows
+import Testing
 import Writers
 
 extension WritersFlowSuite {

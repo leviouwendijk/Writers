@@ -25,6 +25,15 @@ public enum StandardEditSnapshotError: Error, LocalizedError, Sendable {
         range: LineRange
     )
 
+    case mixedCoordinateFamilies
+
+    case overlappingPositionRanges(
+        firstIndex: Int,
+        secondIndex: Int,
+        firstRange: PositionRange,
+        secondRange: PositionRange
+    )
+
     public var errorDescription: String? {
         switch self {
         case .unsupportedOperation(let index, let operation):
@@ -38,8 +47,20 @@ public enum StandardEditSnapshotError: Error, LocalizedError, Sendable {
 
         case .insertionInsideEditedRange(let insertionIndex, let insertionLine, let rangeIndex, let range):
             return "Snapshot edit operation \(insertionIndex) inserts at original line \(insertionLine), which is inside the original range edited by operation \(rangeIndex): \(range)."
+
+        case .mixedCoordinateFamilies:
+            return "Snapshot edits may not mix PositionRange replacement with other coordinate families."
+
+        case .overlappingPositionRanges(let firstIndex, let secondIndex, let firstRange, let secondRange):
+            return "Snapshot edit operations \(firstIndex) and \(secondIndex) edit overlapping original position ranges: \(firstRange) and \(secondRange)."
         }
     }
+}
+
+private struct StandardEditSnapshotRangeEdit: Sendable {
+    let operationIndex: Int
+    let range: PositionRange
+    let replacement: String
 }
 
 private struct StandardEditSnapshotLineEdit: Sendable {
@@ -103,6 +124,17 @@ public extension StandardEditOperation {
             )
         }
 
+        if operations.containsPositionRangeOperation {
+            guard operations.allSatisfy({ $0.isPositionRangeOperation }) else {
+                throw StandardEditSnapshotError.mixedCoordinateFamilies
+            }
+
+            return try applyingSnapshotPositionRanges(
+                operations,
+                to: content
+            )
+        }
+
         let originalLines = WriteTextLines(
             content
         ).lines
@@ -142,7 +174,9 @@ public extension StandardEditOperation {
              .prepend,
              .replaceFirst,
              .replaceAll,
-             .replaceUnique:
+             .replaceUnique,
+             .replaceRange,
+             .replaceRangeGuarded:
             throw StandardEditSnapshotError.unsupportedOperation(
                 index: operationIndex,
                 operation: operation.snapshotDescription
@@ -345,6 +379,107 @@ public extension StandardEditOperation {
                 replacementLines: [],
                 originalRange: range
             )
+        }
+    }
+
+    private static func applyingSnapshotPositionRanges(
+        _ operations: [Self],
+        to content: String
+    ) throws -> String {
+        let edits = try operations.enumerated().map { offset, operation in
+            try snapshotRangeEdit(
+                operation,
+                operationIndex: offset + 1,
+                content: content
+            )
+        }
+
+        let sorted = edits.sorted { lhs, rhs in
+            if lhs.range.start != rhs.range.start {
+                return lhs.range.start < rhs.range.start
+            }
+
+            return lhs.range.end < rhs.range.end
+        }
+
+        var previous: StandardEditSnapshotRangeEdit?
+
+        for edit in sorted {
+            if let previous,
+               edit.range.start.offset < previous.range.end.offset {
+                throw StandardEditSnapshotError.overlappingPositionRanges(
+                    firstIndex: previous.operationIndex,
+                    secondIndex: edit.operationIndex,
+                    firstRange: previous.range,
+                    secondRange: edit.range
+                )
+            }
+
+            previous = edit
+        }
+
+        var edited = content
+
+        for edit in edits.sorted(by: { lhs, rhs in
+            lhs.range.start > rhs.range.start
+        }) {
+            let resolved = try resolvePositionRange(
+                edit.range,
+                in: edited
+            )
+
+            edited.replaceSubrange(
+                resolved,
+                with: edit.replacement
+            )
+        }
+
+        return edited
+    }
+
+    private static func snapshotRangeEdit(
+        _ operation: Self,
+        operationIndex: Int,
+        content: String
+    ) throws -> StandardEditSnapshotRangeEdit {
+        switch operation {
+        case .replaceRange(let range, let replacement):
+            _ = try resolvePositionRange(
+                range,
+                in: content
+            )
+
+            return .init(
+                operationIndex: operationIndex,
+                range: range,
+                replacement: replacement
+            )
+
+        case .replaceRangeGuarded(let range, let expected, let replacement):
+            let resolved = try resolvePositionRange(
+                range,
+                in: content
+            )
+            let actual = String(
+                content[resolved]
+            )
+
+            guard actual == expected else {
+                throw StandardEditError.positionRangeMismatch(
+                    range: range,
+                    expected: expected,
+                    actual: actual
+                )
+            }
+
+            return .init(
+                operationIndex: operationIndex,
+                range: range,
+                replacement: replacement
+            )
+
+        default:
+            throw StandardEditSnapshotError.mixedCoordinateFamilies
         }
     }
 
@@ -620,6 +755,12 @@ public extension StandardEditOperation {
         case .replaceUnique:
             return "replaceUnique"
 
+        case .replaceRange:
+            return "replaceRange"
+
+        case .replaceRangeGuarded:
+            return "replaceRangeGuarded"
+
         case .replaceLine:
             return "replaceLine"
 
@@ -651,7 +792,24 @@ public extension StandardEditOperation {
     // }
 }
 
+private extension StandardEditOperation {
+    var isPositionRangeOperation: Bool {
+        switch self {
+        case .replaceRange,
+             .replaceRangeGuarded:
+            return true
+
+        default:
+            return false
+        }
+    }
+}
+
 private extension Array where Element == StandardEditOperation {
+    var containsPositionRangeOperation: Bool {
+        contains { $0.isPositionRangeOperation }
+    }
+
     var containsReplaceEntireFile: Bool {
         contains { operation in
             if case .replaceEntireFile = operation {

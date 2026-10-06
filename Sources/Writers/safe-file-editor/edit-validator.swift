@@ -301,7 +301,9 @@ private extension StandardEditScope {
 
         case .replaceFirst,
              .replaceAll,
-             .replaceUnique:
+             .replaceUnique,
+             .replaceRange,
+             .replaceRangeGuarded:
             return
         }
     }
@@ -328,6 +330,8 @@ private extension StandardEditScope {
              .replaceFirst,
              .replaceAll,
              .replaceUnique,
+             .replaceRange,
+             .replaceRangeGuarded,
              .replaceLine,
              .replaceLineGuarded,
              .replaceLines,

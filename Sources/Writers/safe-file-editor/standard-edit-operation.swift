@@ -10,6 +10,9 @@ public enum StandardEditOperation: Codable, Sendable, Hashable {
     case replaceAll(of: String, with: String)
     case replaceUnique(of: String, with: String)
 
+    case replaceRange(PositionRange, with: String)
+    case replaceRangeGuarded(PositionRange, expected: String, with: String)
+
     case replaceLine(Int, with: String)
     case replaceLineGuarded(Int, expected: String, with: String)
 
@@ -87,6 +90,28 @@ public struct StandardEditOperationTextSurface: Sendable {
     ) -> StandardEditOperation {
         .replaceUnique(
             of: target,
+            with: replacement
+        )
+    }
+
+    public func replace(
+        _ range: PositionRange,
+        with replacement: String
+    ) -> StandardEditOperation {
+        .replaceRange(
+            range,
+            with: replacement
+        )
+    }
+
+    public func replace(
+        _ range: PositionRange,
+        expected: String,
+        with replacement: String
+    ) -> StandardEditOperation {
+        .replaceRangeGuarded(
+            range,
+            expected: expected,
             with: replacement
         )
     }

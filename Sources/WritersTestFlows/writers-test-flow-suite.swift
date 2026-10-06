@@ -1,6 +1,6 @@
 import Foundation
 import Position
-import TestFlows
+import Testing
 import Writers
 
 enum WritersFlowSuite: TestFlowRegistry {
@@ -33,6 +33,7 @@ enum WritersFlowSuite: TestFlowRegistry {
         binaryRollbackContractFlow,
         mutationSnapshotFlow,
         editConstraintFlow,
+        positionRangeEditFlow,
         editBatchFlow,
         editPassFlow,
         standardMutationFlow,
