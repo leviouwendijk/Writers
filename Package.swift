@@ -15,12 +15,12 @@ let package = Package(
         ),
 
         .executable(
-            name: "wtest",
-            targets: ["WritersTestFlows"]
+            name: "t_writers",
+            targets: ["WritersTests"]
         ),
 
         .executable(
-            name: "wbench",
+            name: "b_writers",
             targets: ["WritersBenchmark"]
         ),
     ],
@@ -45,7 +45,7 @@ let package = Package(
             ],
         ),
         .executableTarget(
-            name: "WritersTestFlows",
+            name: "WritersTests",
             dependencies: [
                 "Writers",
                 .product(name: "Difference", package: "Difference"),
@@ -55,12 +55,14 @@ let package = Package(
                 .product(name: "Testing", package: "Testing"),
             ],
             // sources: ["WritersTestFlows"]
+            path: "Testing/WritersTests"
         ),
         .executableTarget(
             name: "WritersBenchmark",
             dependencies: [
                 "Writers",
-            ]
+            ],
+            path: "Testing/WritersBenchmark"
         ),
     ]
 )

@@ -5,8 +5,9 @@ extension StandardEditOperation {
         _ range: PositionRange,
         in content: String
     ) throws -> Range<String.Index> {
-        guard range.start.offset >= 0,
-              range.start.offset < range.end.offset
+        guard 
+            range.start.offset >= 0,
+            range.start.offset < range.end.offset
         else {
             throw StandardEditError.invalidPositionRange(
                 range

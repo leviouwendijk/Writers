@@ -36,6 +36,7 @@ enum WritersFlowSuite: TestFlowRegistry {
         positionRangeEditFlow,
         editBatchFlow,
         editPassFlow,
+        coordinatedEditFlow,
         standardMutationFlow,
         standardRollbackFlow,
         standardRollbackHardeningFlow,
