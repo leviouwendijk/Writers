@@ -130,6 +130,24 @@ extension WritersFlowSuite {
                 }
             }
 
+            Step("coordinated operation boundary excludes unsupported text operations") {
+                let supported = try StandardCoordinatedEditOperation(
+                    .replaceLine(1, with: "replacement")
+                )
+                try Expect.equal(
+                    supported.standard_operation,
+                    .replaceLine(1, with: "replacement"),
+                    "coordinated.typed_round_trip"
+                )
+                var rejected = false
+                do {
+                    _ = try StandardCoordinatedEditOperation(.append("unsupported"))
+                } catch StandardEditCoordinationError.unsupported_operation {
+                    rejected = true
+                }
+                try Expect.true(rejected, "coordinated.unsupported_operation_rejected_at_boundary")
+            }
+
             Step("withdrawal retains an explanation and excludes content") {
                 let workspace = try TestWorkspace("coordinated-withdraw")
                 defer { workspace.remove() }

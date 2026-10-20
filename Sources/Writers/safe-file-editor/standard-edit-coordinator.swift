@@ -138,13 +138,13 @@ public struct StandardEditMutator: Sendable, Identifiable {
     @discardableResult
     public func submit(
         acquisition: StandardEditAcquisition,
-        operation: StandardEditOperation,
+        operation: StandardCoordinatedEditOperation,
         comment: String? = nil
     ) async throws -> StandardEditMutation {
         try await coordinator.submit(
             mutator_id: id,
             acquisition_id: acquisition.id,
-            operation: operation,
+            operation: operation.standard_operation,
             comment: comment
         )
     }
