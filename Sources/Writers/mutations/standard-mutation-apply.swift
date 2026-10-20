@@ -503,7 +503,7 @@ public struct StandardMutationApplier: Sendable {
     }
 }
 
-private extension StandardPlannedMutation {
+extension StandardPlannedMutation {
     func requireCurrent() throws {
         if let copyPlan {
             try copyPlan.requireCurrent()
