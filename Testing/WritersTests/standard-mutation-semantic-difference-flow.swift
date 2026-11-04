@@ -1,5 +1,6 @@
 import Difference
 import Foundation
+import Path
 import Testing
 import Writers
 
@@ -48,6 +49,57 @@ extension WritersFlowSuite {
                 _ = try Expect.notNil(entry, "move detected from declared source/destination")
                 try Expect.true(entry?.before?.path != entry?.after?.path, "both move addresses retained")
                 try Expect.equal(relocation.structure.source, .planned, "planned move provenance")
+                let layout = relocation.make_tree_layout(presenting: { entry in
+                    guard entry.change == .moved,
+                          let before = entry.before,
+                          let after = entry.after else {
+                        return .init(label: entry.label)
+                    }
+                    return .init(
+                        label: entry.label,
+                        relocation: .init(
+                            from: before.path.render(as: .relative, filetype: true),
+                            to: after.path.render(as: .relative, filetype: true)
+                        )
+                    )
+                })
+                let moveLine = try Expect.notNil(
+                    layout.lines.first { $0.change == .moved },
+                    "planned move appears in shared layout"
+                )
+                try Expect.equal(
+                    moveLine.relocation?.from,
+                    entry?.before?.path.render(as: .relative, filetype: true),
+                    "origin retained as a separate value"
+                )
+                try Expect.equal(
+                    moveLine.relocation?.to,
+                    entry?.after?.path.render(as: .relative, filetype: true),
+                    "destination retained as a separate value"
+                )
+                let movePlan = TreeDifferenceRenderPlan.make(layout)
+                let moveSegments = movePlan.lines.first { $0.change == .moved }?.segments
+                try Expect.true(
+                    moveSegments?.contains { $0.component == .relocation_from } == true,
+                    "render plan retains the origin component"
+                )
+                try Expect.true(
+                    moveSegments?.contains { $0.component == .relocation_to } == true,
+                    "render plan retains the destination component"
+                )
+                try Expect.true(
+                    TreeDifferenceRenderer.render(movePlan).contains(" -> "),
+                    "renderer presents relocation endpoints"
+                )
+                try Expect.equal(
+                    try JSONDecoder().decode(
+                        TreeDifferenceLayout.self,
+                        from: JSONEncoder().encode(layout)
+                    ),
+                    layout,
+                    "typed relocation survives serialization"
+                )
+
                 let copied = workspace.file("copied.txt")
                 let copy_plan = try StandardMutationAPI().plan(
                     .copy(.init(source: original, destination: copied))
