@@ -16,7 +16,7 @@
       "location" : "https://github.com/leviouwendijk/Difference.git",
       "state" : {
         "branch" : "master",
-        "revision" : "856ff485a42e81af422d2f7f2b3d83feaaaccde4"
+        "revision" : "1dfb621f592fa904352a6addcf13a10c48bda4bc"
       }
     },
     {
@@ -38,6 +38,15 @@
       }
     },
     {
+      "identity" : "grammar",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/leviouwendijk/Grammar.git",
+      "state" : {
+        "branch" : "master",
+        "revision" : "08f50f8f423555846d1c349181f2a8e79a6d663c"
+      }
+    },
+    {
       "identity" : "io",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/leviouwendijk/IO.git",
@@ -52,7 +61,7 @@
       "location" : "https://github.com/leviouwendijk/Lexing.git",
       "state" : {
         "branch" : "master",
-        "revision" : "9d9e38a29a365f82869585850e79f616b3b4cda9"
+        "revision" : "e24d4e4844db87667eb99809b9e9a060f226ec2d"
       }
     },
     {
@@ -70,7 +79,7 @@
       "location" : "https://github.com/leviouwendijk/Parsing.git",
       "state" : {
         "branch" : "master",
-        "revision" : "e6c4cb5b7b2884dff15f12878fce80aacee3a598"
+        "revision" : "abaa4f5655579dea0830dd500825591ca702a822"
       }
     },
     {
@@ -88,7 +97,7 @@
       "location" : "https://github.com/leviouwendijk/Position.git",
       "state" : {
         "branch" : "master",
-        "revision" : "6c06f1b941553030a1992479783bc24b457aaccc"
+        "revision" : "f83de4398f5c1addf543e85630ac41dc8f41e446"
       }
     },
     {
@@ -125,6 +134,15 @@
       "state" : {
         "branch" : "master",
         "revision" : "a3b2d62e52cb7e061d5a5cdadb63f4d31684dd4d"
+      }
+    },
+    {
+      "identity" : "syntax",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/leviouwendijk/Syntax.git",
+      "state" : {
+        "branch" : "master",
+        "revision" : "2e0e85f68411c88246fcdf19c2c237c6e7a76bd4"
       }
     },
     {

@@ -54,6 +54,7 @@ public enum StandardMutationCoordinationError: Error, Sendable {
     case publication_already_rolled_back(UUID)
     case publication_not_rollbackable(UUID)
     case staged_visibility_unsupported(URL)
+    case review_changed(expected: [UUID], actual: [UUID])
     case requires_recovery
 }
 
@@ -455,10 +456,18 @@ public actor StandardMutationCoordinator {
     /// Owner-only boundary. The participant value does not expose this method.
     /// A partial filesystem failure blocks subsequent submissions until external recovery.
     public func publish(
+        expectedSubmissionIDs: [UUID]? = nil,
         options: StandardMutationApplyOptions = .init(failure: .rollback_applied),
         context: WriteExecutionContext = .init()
     ) throws -> StandardMutationPublication? {
         guard !blocked else { throw StandardMutationCoordinationError.requires_recovery }
+        let actualIDs = pending_submission_ids()
+        if let expectedSubmissionIDs, expectedSubmissionIDs != actualIDs {
+            throw StandardMutationCoordinationError.review_changed(
+                expected: expectedSubmissionIDs,
+                actual: actualIDs
+            )
+        }
         let pending = order.compactMap { submissions[$0] }.filter {
             if case .pending = $0.state { return true }
             return false
