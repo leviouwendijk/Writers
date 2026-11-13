@@ -119,6 +119,12 @@ public struct StandardMutationParticipant: Sendable, Identifiable {
         try await coordinator.withdraw(participant_id: id, submission_id: submission_id)
     }
 
+    /// This participant's staged state of a resource: nil when it has no
+    /// staged change there, `.missing` when staged for deletion.
+    public func staged_state(at url: URL) async throws -> StandardResourceState? {
+        try await coordinator.staged_state(at: url, participant_id: id)
+    }
+
     public func close() async throws {
         try await coordinator.close(participant_id: id)
     }
@@ -281,7 +287,24 @@ public actor StandardMutationCoordinator {
     /// .missing means it is staged for deletion. Copy/move are rejected rather
     /// than pretending their physical source/destination are an ordinary file edit.
     public func staged_state(at url: URL) throws -> StandardResourceState? {
-        guard let plan = try staged_plan() else { return nil }
+        try staged_state(at: url, submissions: nil)
+    }
+
+    /// One participant's view: its own staged changes over the disk.
+    fileprivate func staged_state(
+        at url: URL,
+        participant_id: UUID
+    ) throws -> StandardResourceState? {
+        let ids = pending_submission_ids(participants: [participant_id])
+        guard !ids.isEmpty else { return nil }
+        return try staged_state(at: url, submissions: ids)
+    }
+
+    private func staged_state(
+        at url: URL,
+        submissions ids: [UUID]?
+    ) throws -> StandardResourceState? {
+        guard let plan = try staged_plan(submissions: ids) else { return nil }
         let path = url.standardizedFileURL.resolvingSymlinksInPath().path
         for entry in plan.entries {
             let affected = entry.entry.targets.map {

@@ -61,6 +61,14 @@ extension WritersFlowSuite {
                     operations: [.replaceLineGuarded(1, expected: "b", with: "B")]
                 ))
                 try Expect.equal(
+                    try await worker.staged_state(at: theirs)?.textContent, "B\n",
+                    "units.worker_sees_own_staged"
+                )
+                try Expect.true(
+                    try await worker.staged_state(at: mine) == nil,
+                    "units.worker_does_not_see_others"
+                )
+                try Expect.equal(
                     await coordinator.pending_submission_ids(participants: [root.id]),
                     [own.id],
                     "units.pending_by_participant"
