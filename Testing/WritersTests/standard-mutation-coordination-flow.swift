@@ -42,6 +42,45 @@ extension WritersFlowSuite {
                 try Expect.equal(try workspace.read(file), "ONE\nTWO\nTHREE\n", "mutation.second_round")
             }
 
+            Step("a unit publishes its own submissions while others stay pending") {
+                let workspace = try TestWorkspace("mutation-coordination-units")
+                defer { workspace.remove() }
+                let mine = workspace.file("mine.swift")
+                let theirs = workspace.file("theirs.swift")
+                _ = try StandardWriter(mine).write("a\n", options: .overwriteWithoutBackup)
+                _ = try StandardWriter(theirs).write("b\n", options: .overwriteWithoutBackup)
+                let coordinator = StandardMutationCoordinator()
+                let root = await coordinator.participant(name: "root")
+                let worker = await coordinator.participant(name: "worker")
+                let own = try await root.submit(.editText(
+                    at: mine,
+                    operations: [.replaceLineGuarded(1, expected: "a", with: "A")]
+                ))
+                let held = try await worker.submit(.editText(
+                    at: theirs,
+                    operations: [.replaceLineGuarded(1, expected: "b", with: "B")]
+                ))
+                try Expect.equal(
+                    await coordinator.pending_submission_ids(participants: [root.id]),
+                    [own.id],
+                    "units.pending_by_participant"
+                )
+                let published = try Expect.notNil(
+                    try await coordinator.publish(submissions: [own.id]), "units.subset_publication"
+                )
+                try Expect.equal(published.submission_ids, [own.id], "units.only_requested")
+                try Expect.equal(try workspace.read(mine), "A\n", "units.own_applied")
+                try Expect.equal(try workspace.read(theirs), "b\n", "units.other_still_staged")
+                try Expect.equal(await coordinator.pending_submission_ids(), [held.id], "units.other_pending")
+                var refused = false
+                do {
+                    _ = try await coordinator.publish(submissions: [own.id])
+                } catch StandardMutationCoordinationError.submission_not_pending {
+                    refused = true
+                }
+                try Expect.true(refused, "units.published_is_not_pending")
+            }
+
             Step("overlapping ranges reject admission and withdrawal releases reservations") {
                 let workspace = try TestWorkspace("mutation-coordination-conflict")
                 defer { workspace.remove() }

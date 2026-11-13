@@ -252,12 +252,21 @@ public actor StandardMutationCoordinator {
     /// Owner-only prepared aggregate. The caller must apply Workspace read
     /// authorization before exposing any staged state to an agent.
     /// This uses the same planner and merge path as publication, but never writes.
-    public func staged_plan() throws -> StandardMutationPlan? {
-        guard !blocked else { throw StandardMutationCoordinationError.requires_recovery }
-        let pending = order.compactMap { submissions[$0] }.filter {
-            if case .pending = $0.state { return true }
-            return false
+    /// Pending submissions of these participants, in submission order.
+    public func pending_submission_ids(participants: Set<UUID>) -> [UUID] {
+        order.filter { id in
+            guard let submission = submissions[id],
+                  participants.contains(submission.participant_id),
+                  case .pending = submission.state else { return false }
+            return true
         }
+    }
+
+    /// The combined plan of all pending submissions, or of exactly the given
+    /// pending submissions.
+    public func staged_plan(submissions ids: [UUID]? = nil) throws -> StandardMutationPlan? {
+        guard !blocked else { throw StandardMutationCoordinationError.requires_recovery }
+        let pending = try pending_submissions(ids)
         guard !pending.isEmpty else { return nil }
         for submission in pending {
             for entry in submission.plan.entries {
@@ -468,10 +477,55 @@ public actor StandardMutationCoordinator {
                 actual: actualIDs
             )
         }
-        let pending = order.compactMap { submissions[$0] }.filter {
-            if case .pending = $0.state { return true }
-            return false
+        return try publish(
+            try pending_submissions(nil),
+            options: options,
+            context: context
+        )
+    }
+
+    /// Owner-only: publish exactly these pending submissions. Claims keep
+    /// pending submissions disjoint, so a subset never conflicts with the
+    /// submissions left pending.
+    public func publish(
+        submissions ids: [UUID],
+        options: StandardMutationApplyOptions = .init(failure: .rollback_applied),
+        context: WriteExecutionContext = .init()
+    ) throws -> StandardMutationPublication? {
+        guard !blocked else { throw StandardMutationCoordinationError.requires_recovery }
+        return try publish(
+            try pending_submissions(ids),
+            options: options,
+            context: context
+        )
+    }
+
+    private func pending_submissions(
+        _ ids: [UUID]?
+    ) throws -> [StandardMutationSubmission] {
+        guard let ids else {
+            return order.compactMap { submissions[$0] }.filter {
+                if case .pending = $0.state { return true }
+                return false
+            }
         }
+        let requested = Set(ids)
+        for id in ids {
+            guard let submission = submissions[id] else {
+                throw StandardMutationCoordinationError.unknown_submission(id)
+            }
+            guard case .pending = submission.state else {
+                throw StandardMutationCoordinationError.submission_not_pending(id)
+            }
+        }
+        return order.filter(requested.contains).compactMap { submissions[$0] }
+    }
+
+    private func publish(
+        _ pending: [StandardMutationSubmission],
+        options: StandardMutationApplyOptions,
+        context: WriteExecutionContext
+    ) throws -> StandardMutationPublication? {
         guard !pending.isEmpty else { return nil }
 
         // Validate the *approved* snapshots, not merely a newly produced preview.
