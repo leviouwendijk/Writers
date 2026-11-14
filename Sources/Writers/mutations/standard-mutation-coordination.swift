@@ -523,6 +523,16 @@ public actor StandardMutationCoordinator {
         )
     }
 
+    /// Owner-only: withdraw exactly these pending submissions, e.g. those
+    /// rejected on review. The others stay pending and publishable.
+    public func discard(
+        submissions ids: [UUID]
+    ) throws {
+        for submission in try pending_submissions(ids) {
+            submissions[submission.id] = submission.with_state(.withdrawn)
+        }
+    }
+
     private func pending_submissions(
         _ ids: [UUID]?
     ) throws -> [StandardMutationSubmission] {

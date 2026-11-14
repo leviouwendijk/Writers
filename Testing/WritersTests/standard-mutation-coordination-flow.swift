@@ -87,6 +87,13 @@ extension WritersFlowSuite {
                     refused = true
                 }
                 try Expect.true(refused, "units.published_is_not_pending")
+                try await coordinator.discard(submissions: [held.id])
+                try Expect.equal(await coordinator.pending_submission_ids(), [], "units.discarded_not_pending")
+                try Expect.equal(try workspace.read(theirs), "b\n", "units.discarded_not_applied")
+                try Expect.true(
+                    try await worker.staged_state(at: theirs) == nil,
+                    "units.discarded_not_staged"
+                )
             }
 
             Step("overlapping ranges reject admission and withdrawal releases reservations") {
