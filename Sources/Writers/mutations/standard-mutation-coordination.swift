@@ -738,3 +738,44 @@ public actor StandardMutationCoordinator {
         }
     }
 }
+
+extension StandardMutationCoordinationError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .conflict(let file, let blocking):
+            return "\(file.lastPathComponent) already has staged changes (submission \(blocking)) "
+                + "that await the owner's review. It cannot change again until they are published "
+                + "or discarded; report the staged change instead of retrying."
+        case .unknown_participant(let id):
+            return "Unknown mutation participant \(id)."
+        case .closed_participant(let id):
+            return "Mutation participant \(id) is closed."
+        case .unknown_submission(let id):
+            return "Unknown staged submission \(id)."
+        case .submission_not_owned(let id):
+            return "Staged submission \(id) belongs to another participant."
+        case .submission_not_pending(let id):
+            return "Staged submission \(id) is no longer pending."
+        case .unsupported_merge(let file):
+            return "Staged changes to \(file.lastPathComponent) cannot be combined."
+        case .incompatible_edit_options(let file):
+            return "Staged edits to \(file.lastPathComponent) use incompatible options."
+        case .overlapping_submission_footprints(let file):
+            return "One plan changes \(file.lastPathComponent) through overlapping entries."
+        case .publication_attribution_missing(let file):
+            return "Publication of \(file.lastPathComponent) lost its attribution."
+        case .unknown_publication(let id):
+            return "Unknown publication \(id)."
+        case .publication_already_rolled_back(let id):
+            return "Publication \(id) was already rolled back."
+        case .publication_not_rollbackable(let id):
+            return "Publication \(id) cannot be rolled back."
+        case .staged_visibility_unsupported(let file):
+            return "Staged copy or move of \(file.lastPathComponent) cannot be read as a file."
+        case .review_changed:
+            return "The staged changes changed since they were reviewed; review them again."
+        case .requires_recovery:
+            return "A failed publication needs recovery before further changes."
+        }
+    }
+}
