@@ -274,38 +274,19 @@ public enum WriteTargetPreflight {
         context: WriteExecutionContext,
         timestamp: String
     ) throws -> WriteBackupRecord? {
-        let fileSystem = FileSystem.default
-
+        // Local backups are exclusive clones; `originalFingerprint` is the
+        // collision scan's.
         switch policy {
         case .automatic,
              .disabled:
             return nil
 
         case .sibling_file:
-            let baseBackup = collision.target
-                .deletingLastPathComponent()
-                .appendingPathComponent(
-                    collision.target.lastPathComponent + options.backupSuffix,
-                    isDirectory: false
-                )
-
-            let backupURL: URL
-            if fileSystem.exists(
-                baseBackup
-            ) {
-                backupURL = collision.target
-                    .deletingLastPathComponent()
-                    .appendingPathComponent(
-                        collision.target.lastPathComponent + ".\(timestamp)" + options.backupSuffix,
-                        isDirectory: false
-                    )
-            } else {
-                backupURL = baseBackup
-            }
-
-            try fileSystem.copy(
-                collision.target,
-                to: backupURL
+            let backupURL = try LocalWriteBackup.sibling(
+                of: collision.target,
+                suffix: options.backupSuffix,
+                addTimestampIfExists: true,
+                timestamp: timestamp
             )
 
             return .init(
@@ -319,35 +300,13 @@ public enum WriteTargetPreflight {
             )
 
         case .backup_directory:
-            let writer = SafeFile(
-                collision.target
-            )
-            let setDir = try writer.ensureBackupSetDir(
+            let dst = try LocalWriteBackup.intoSet(
+                of: collision.target,
+                writer: SafeFile(
+                    collision.target
+                ),
                 options: options,
                 timestamp: timestamp
-            )
-            let dst = setDir.appendingPathComponent(
-                collision.target.lastPathComponent,
-                isDirectory: false
-            )
-
-            if fileSystem.exists(
-                dst
-            ) {
-                try? fileSystem.remove(
-                    dst
-                )
-            }
-
-            try fileSystem.copy(
-                collision.target,
-                to: dst
-            )
-
-            try writer.pruneBackupSets(
-                baseDir: setDir.deletingLastPathComponent(),
-                prefix: options.backupSetPrefix,
-                keep: options.maxBackupSets
             )
 
             return .init(

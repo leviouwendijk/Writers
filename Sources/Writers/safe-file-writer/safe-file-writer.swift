@@ -100,30 +100,33 @@ public struct FileWriter: Sendable, SafelyWritable {
             )
 
         case .append:
-            let fileSystem = FileSystem.default
             var composed = string
 
-            if fileSystem.exists(
-                url
-            ) {
-                let isBlank = try fileIsBlank(
-                    whitespaceCounts: options.whitespaceOnlyIsBlank
+            // One read serves both the blank check and the existing text (a
+            // missing file reads as empty, i.e. blank).
+            let existing = try IntegratedReader.text(
+                at: url,
+                encoding: encoding,
+                missingFileReturnsEmpty: true,
+                normalizeNewlines: false
+            )
+
+            let isBlank = existing.isEmpty
+                || (
+                    options.whitespaceOnlyIsBlank
+                    && existing
+                        .trimmingCharacters(
+                            in: .whitespacesAndNewlines
+                        )
+                        .isEmpty
                 )
 
-                if !isBlank {
-                    let existing = try IntegratedReader.text(
-                        at: url,
-                        encoding: encoding,
-                        missingFileReturnsEmpty: true,
-                        normalizeNewlines: false
-                    )
-
-                    if let separator,
-                       !separator.isEmpty {
-                        composed = existing + separator + string
-                    } else {
-                        composed = existing + string
-                    }
+            if !isBlank {
+                if let separator,
+                   !separator.isEmpty {
+                    composed = existing + separator + string
+                } else {
+                    composed = existing + string
                 }
             }
 
@@ -175,12 +178,23 @@ public struct FileWriter: Sendable, SafelyWritable {
                 )
             }
 
-            let writeOpts: Data.WritingOptions = options.atomic ? [.atomic] : []
-
-            try plan.incoming.data.write(
-                to: url,
-                options: writeOpts
-            )
+            do {
+                try FileWriteCommit.write(
+                    plan.incoming.data,
+                    to: url,
+                    replacingExisting: plan.before != nil,
+                    atomic: options.atomic,
+                    durable: options.durable
+                )
+            } catch let error as FileSystemError
+                where error.errno == EEXIST && plan.before == nil
+            {
+                // The no-replace publish refused a file that appeared after the
+                // plan was validated.
+                throw WriteExecutionStalePlanError.current_appeared(
+                    target: url
+                )
+            }
 
             return .init(
                 target: url,
@@ -232,9 +246,11 @@ public struct FileWriter: Sendable, SafelyWritable {
             return nil
 
         case .sibling_file:
-            let backupURL = try makeBackup(
+            let backupURL = try LocalWriteBackup.sibling(
+                of: url,
                 suffix: options.backupSuffix,
-                addTimestampIfExists: options.addTimestampIfBackupExists
+                addTimestampIfExists: options.addTimestampIfBackupExists,
+                timestamp: timestampString()
             )
 
             return .init(
@@ -248,31 +264,11 @@ public struct FileWriter: Sendable, SafelyWritable {
             )
 
         case .backup_directory:
-            let ts = timestampString()
-            let setDir = try ensureBackupSetDir(
+            let dst = try LocalWriteBackup.intoSet(
+                of: url,
+                writer: self,
                 options: options,
-                timestamp: ts
-            )
-            let dst = setDir.appendingPathComponent(
-                url.lastPathComponent,
-                isDirectory: false
-            )
-
-            let fileSystem = FileSystem.default
-
-            try? fileSystem.remove(
-                dst
-            )
-
-            try fileSystem.copy(
-                url,
-                to: dst
-            )
-
-            try pruneBackupSets(
-                baseDir: setDir.deletingLastPathComponent(),
-                prefix: options.backupSetPrefix,
-                keep: options.maxBackupSets
+                timestamp: timestampString()
             )
 
             return .init(

@@ -39,16 +39,34 @@ public extension WritePlan {
             return self
         }
 
-        let fileSystem = FileSystem.default
+        // One stat answers existence and, when the plan carries the metadata
+        // of the file it read, whether that file is untouched: same identity,
+        // size and mtime means no re-read and no hash. Any difference (a
+        // `touch`, an atomic rewrite with the same bytes) falls back to the
+        // content fingerprint. Assumes mtime resolution fine enough that a
+        // same-size, same-inode rewrite within the window changes it (APFS:
+        // nanoseconds; coarse-mtime filesystems are not covered).
+        let current = try FileInspector(
+            target
+        ).inspect(
+            followingSymlinks: true
+        )
 
         if let before {
-            guard fileSystem.exists(
-                target
-            ) else {
+            guard current.existed else {
                 throw WriteExecutionStalePlanError.current_missing(
                     target: target,
                     expected: before.fingerprint
                 )
+            }
+
+            if let planned = beforeMetadata,
+               planned.identity != nil,
+               planned.identity == current.identity,
+               planned.byteCount == current.byteCount,
+               planned.modifiedAt == current.modifiedAt
+            {
+                return self
             }
 
             let currentFingerprint = try IntegratedReader.contentFingerprint(
@@ -67,9 +85,7 @@ public extension WritePlan {
             return self
         }
 
-        guard !fileSystem.exists(
-            target
-        ) else {
+        guard !current.existed else {
             throw WriteExecutionStalePlanError.current_appeared(
                 target: target
             )

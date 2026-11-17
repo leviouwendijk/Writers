@@ -92,7 +92,6 @@ public extension SafelyWritable {
     /// Restores the backup over the current file. By default, preserves the current file
     /// to a timestamped ".restore_point.bak".
     @discardableResult
-    @inlinable
     func restoreFromBackup(
         backupURL: URL? = nil,
         backupSuffix: String = "_previous_version.bak",
@@ -125,25 +124,23 @@ public extension SafelyWritable {
             url
         ),
            keepCurrentAsRestorePoint {
-            let restorePoint = timestampedSibling(
-                for: url,
-                extraSuffix: ".restore_point.bak"
-            )
-
-            try fileSystem.copy(
-                url,
-                to: restorePoint
+            // Exclusive and unique: a same-second restore point never
+            // replaces an earlier one.
+            _ = try LocalWriteBackup.timestamped(
+                of: url,
+                suffix: ".restore_point.bak",
+                timestamp: timestampString()
             )
         }
 
-        let tmp = timestampedSibling(
-            for: url,
-            extraSuffix: ".tmp.restore"
-        )
-
-        try? fileSystem.remove(
-            tmp
-        )
+        // Unique per restore; never pre-deleted, so concurrent restores cannot
+        // clobber each other's staging copy.
+        let tmp = url
+            .deletingLastPathComponent()
+            .appendingPathComponent(
+                ".\(url.lastPathComponent).\(UUID().uuidString).tmp.restore",
+                isDirectory: false
+            )
 
         try fileSystem.copy(
             bu,
@@ -164,9 +161,14 @@ public extension SafelyWritable {
     @inlinable
     func ensureParentExists(createIfNeeded: Bool) throws {
         let parent = url.deletingLastPathComponent()
-        let metadata = try FileInspector(
+        let inspector = FileInspector(
             parent
-        ).inspect()
+        )
+        // Follow a symlinked parent (e.g. /tmp on macOS): the write lands in
+        // the directory it points to.
+        let metadata = try inspector.inspect(
+            followingSymlinks: true
+        )
 
         if metadata.existed {
             guard metadata.kind == .directory else {
@@ -176,6 +178,14 @@ public extension SafelyWritable {
             }
 
             return
+        }
+
+        // Missing when followed but present unfollowed: a dangling symlink.
+        // Never create a directory through it.
+        if try inspector.inspect().existed {
+            throw SafeFileError.parentDirectoryMissing(
+                url
+            )
         }
 
         if createIfNeeded {
@@ -221,48 +231,7 @@ public extension SafelyWritable {
         return false
     }
 
-    @inlinable
-    func makeBackup(
-        suffix: String,
-        addTimestampIfExists: Bool
-    ) throws -> URL {
-        let fileSystem = FileSystem.default
-        var bu = defaultBackupURL(
-            suffix: suffix
-        )
-
-        if fileSystem.exists(
-            bu
-        ),
-           addTimestampIfExists {
-            bu = timestampedSibling(
-                for: bu
-            )
-        }
-
-        try? fileSystem.remove(
-            bu
-        )
-
-        try fileSystem.copy(
-            url,
-            to: bu
-        )
-
-        return bu
-    }
-
-    @inlinable
-    func timestampedSibling(for original: URL, extraSuffix: String = "") -> URL {
-        // Local timestamp helper; no dependency on conforming type
-        let df = DateFormatter()
-        df.dateFormat = "yyyyMMdd_HHmmss"
-        df.locale = Locale(identifier: "en_US_POSIX")
-        let stamp = df.string(from: Date())
-        let name = original.lastPathComponent + "." + stamp + extraSuffix
-        return original.deletingLastPathComponent().appendingPathComponent(name, isDirectory: false)
-    }
-
+    /// Publishes `src` at `dst` and consumes `src` (removed on failure).
     @inlinable
     func replaceItem(
         at dst: URL,
@@ -270,20 +239,30 @@ public extension SafelyWritable {
     ) throws {
         let fileSystem = FileSystem.default
 
+        // Never remove-then-move: `dst` must exist at every instant. An
+        // existing destination is swapped atomically (keeping its metadata);
+        // a missing one gets a no-replace rename. A symlinked destination is
+        // written through to its target; replace resolves only when it meets
+        // one.
         do {
             if fileSystem.exists(
                 dst
             ) {
-                try fileSystem.remove(
-                    dst
+                try fileSystem.replace(
+                    dst,
+                    with: src,
+                    followingSymlinks: true
+                )
+            } else {
+                try fileSystem.move(
+                    src,
+                    to: dst
                 )
             }
-
-            try fileSystem.move(
-                src,
-                to: dst
-            )
         } catch {
+            try? fileSystem.remove(
+                src
+            )
             throw SafeFileError.io(
                 underlying: error
             )
@@ -330,16 +309,24 @@ public extension SafelyWritable {
         return set
     }
 
+    /// Keeps the newest `keep` backup sets. `preserving` (the set just written)
+    /// is never removed and counts toward `keep`, so `keep: 0` cannot delete
+    /// the backup an overwrite is about to rely on.
     @inlinable
     func pruneBackupSets(
         baseDir: URL,
         prefix: String,
-        keep: Int?
+        keep: Int?,
+        preserving: URL? = nil
     ) throws {
         guard let keep = keep, keep >= 0 else {
             return
         }
 
+        let preservedName = preserving?.standardizedFileURL.lastPathComponent
+        let others = preservedName == nil
+            ? keep
+            : max(0, keep - 1)
         let fileSystem = FileSystem.default
 
         let dirs = try fileSystem.directory.contents(
@@ -354,7 +341,8 @@ public extension SafelyWritable {
                 metadata.kind == .directory,
                 url.lastPathComponent.hasPrefix(
                     prefix
-                )
+                ),
+                url.lastPathComponent != preservedName
             else {
                 return nil
             }
@@ -365,9 +353,9 @@ public extension SafelyWritable {
             $0.lastPathComponent < $1.lastPathComponent
         }
 
-        if dirs.count > keep {
+        if dirs.count > others {
             for url in dirs.prefix(
-                dirs.count - keep
+                dirs.count - others
             ) {
                 try? fileSystem.remove(
                     url
@@ -411,19 +399,21 @@ public extension SafelyWritable {
                 $0.lastPathComponent < $1.lastPathComponent
             }
 
-        guard let newestSet = sets.last else {
-            return nil
+        // Sets are shared by every file in a directory; the newest set holding
+        // this file's backup is the latest one, even if newer sets exist.
+        for set in sets.reversed() {
+            let candidate = set.appendingPathComponent(
+                url.lastPathComponent,
+                isDirectory: false
+            )
+
+            if fileSystem.exists(
+                candidate
+            ) {
+                return candidate
+            }
         }
 
-        let candidate = newestSet.appendingPathComponent(
-            url.lastPathComponent,
-            isDirectory: false
-        )
-
-        return fileSystem.exists(
-            candidate
-        )
-            ? candidate
-            : nil
+        return nil
     }
 }

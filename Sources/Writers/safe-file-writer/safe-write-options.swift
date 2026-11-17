@@ -10,6 +10,11 @@ public struct WriteOptions: Sendable, Codable, Hashable {
     public var createIntermediateDirectories: Bool
     public var atomic: Bool
 
+    /// Flush the staged bytes to stable storage (F_FULLFSYNC) before publishing.
+    /// Off by default: publish is atomic either way; durability across power
+    /// loss costs a drive-cache flush per write.
+    public var durable: Bool
+
     public var createBackupDirectory: Bool
     public var backupDirectoryName: String
     public var backupSetPrefix: String
@@ -27,6 +32,7 @@ public struct WriteOptions: Sendable, Codable, Hashable {
         addTimestampIfBackupExists: Bool = true,
         createIntermediateDirectories: Bool = true,
         atomic: Bool = true,
+        durable: Bool = false,
         createBackupDirectory: Bool = true,
         backupDirectoryName: String = "safe-file-backups",
         backupSetPrefix: String = "overwrite_",
@@ -41,6 +47,7 @@ public struct WriteOptions: Sendable, Codable, Hashable {
         self.addTimestampIfBackupExists = addTimestampIfBackupExists
         self.createIntermediateDirectories = createIntermediateDirectories
         self.atomic = atomic
+        self.durable = durable
         self.createBackupDirectory = createBackupDirectory
         self.backupDirectoryName = backupDirectoryName
         self.backupSetPrefix = backupSetPrefix

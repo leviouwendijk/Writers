@@ -23,6 +23,7 @@ public struct WritePlanOptions: Sendable, Codable, Hashable {
     public let addTimestampIfBackupExists: Bool
     public let createIntermediateDirectories: Bool
     public let atomic: Bool
+    public let durable: Bool
     public let createBackupDirectory: Bool
     public let backupDirectoryName: String
     public let backupSetPrefix: String
@@ -39,6 +40,7 @@ public struct WritePlanOptions: Sendable, Codable, Hashable {
         addTimestampIfBackupExists: Bool = true,
         createIntermediateDirectories: Bool = true,
         atomic: Bool = true,
+        durable: Bool = false,
         createBackupDirectory: Bool = true,
         backupDirectoryName: String = "safe-file-backups",
         backupSetPrefix: String = "overwrite_",
@@ -54,6 +56,7 @@ public struct WritePlanOptions: Sendable, Codable, Hashable {
         self.addTimestampIfBackupExists = addTimestampIfBackupExists
         self.createIntermediateDirectories = createIntermediateDirectories
         self.atomic = atomic
+        self.durable = durable
         self.createBackupDirectory = createBackupDirectory
         self.backupDirectoryName = backupDirectoryName
         self.backupSetPrefix = backupSetPrefix
@@ -74,6 +77,7 @@ public struct WritePlanOptions: Sendable, Codable, Hashable {
             addTimestampIfBackupExists: options.addTimestampIfBackupExists,
             createIntermediateDirectories: options.createIntermediateDirectories,
             atomic: options.atomic,
+            durable: options.durable,
             createBackupDirectory: options.createBackupDirectory,
             backupDirectoryName: options.backupDirectoryName,
             backupSetPrefix: options.backupSetPrefix,
@@ -100,6 +104,10 @@ public struct WritePlan: Sendable, Codable, Hashable {
     public let backupPolicy: WriteBackupPolicy
     public let canProceed: Bool
 
+    /// Metadata of the file the plan read (identity, size, mtime). The stale
+    /// check compares it with one `stat` and re-reads only on a mismatch.
+    public let beforeMetadata: FileMetadataSnapshot?
+
     public init(
         target: URL,
         incoming: WriteIncomingContent,
@@ -113,7 +121,8 @@ public struct WritePlan: Sendable, Codable, Hashable {
         resource: WriteResourceChangeKind,
         delta: WriteDeltaKind,
         backupPolicy: WriteBackupPolicy,
-        canProceed: Bool? = nil
+        canProceed: Bool? = nil,
+        beforeMetadata: FileMetadataSnapshot? = nil
     ) {
         let resolvedAction = overwriteAction ?? Self.defaultAction(
             before: before,
@@ -136,6 +145,7 @@ public struct WritePlan: Sendable, Codable, Hashable {
         self.delta = delta
         self.backupPolicy = backupPolicy
         self.canProceed = canProceed ?? resolvedAction.canProceed
+        self.beforeMetadata = beforeMetadata
     }
 
     public var hasCollision: Bool {
@@ -323,20 +333,20 @@ public extension StandardWriter {
         incomingText: String? = nil,
         options: SafeWriteOptions = .init()
     ) throws -> WritePlan {
-        let metadata = try FileInspector(
+        // One open + fstat + read: existence comes from the read itself, and
+        // the snapshot is the opened file's (symlinks followed, so a dangling
+        // link plans a creation). Its metadata lets the stale check skip a
+        // second read when nothing changed.
+        let read = try DataFileReader(
             url
-        ).inspect()
-
-        let existingRead = metadata.existed
-            ? try DataFileReader(
-                url
-            ).read(
-                inspected: metadata,
-                options: .init(
-                    missingFilePolicy: .throwError,
-                    cachePolicy: .uncached
-                )
+        ).read(
+            options: .init(
+                missingFilePolicy: .returnEmpty,
+                cachePolicy: .uncached
             )
+        )
+        let existingRead = read.existed
+            ? read
             : nil
 
         let existingData = existingRead?.data
@@ -406,7 +416,8 @@ public extension StandardWriter {
                 after: after
             ),
             backupPolicy: options.resolvedBackupPolicy,
-            canProceed: action.canProceed
+            canProceed: action.canProceed,
+            beforeMetadata: existingRead?.fileSnapshot?.metadata
         )
     }
 
