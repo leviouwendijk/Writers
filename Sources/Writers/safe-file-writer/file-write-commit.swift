@@ -96,9 +96,11 @@ enum FileWriteCommit {
             )
     }
 
-    /// No-replace publish. `EEXIST` is final unless the occupant is a dangling
-    /// symlink, whose missing target is the file to create; that check runs
-    /// only on the error path.
+    /// No-replace publish. `EEXIST` is final unless the occupant is a symlink:
+    /// then the link's own target (one level, read from the link, since
+    /// `resolve` returns a dangling link unchanged) receives the same
+    /// no-replace publish, which succeeds only when that target is missing.
+    /// The link read runs only on the error path.
     private static func create(
         _ staging: URL,
         at url: URL
@@ -113,25 +115,16 @@ enum FileWriteCommit {
         } catch let error as FileSystemError
             where error.errno == EEXIST
         {
-            let link = try FileInspector(
-                url
-            ).inspect()
-
-            guard link.kind == .symlink,
-                  try !FileInspector(
-                    url
-                  ).inspect(
-                    followingSymlinks: true
-                  ).existed
-            else {
+            guard let link = try fileSystem.firstSymlink(
+                in: url,
+                below: url.deletingLastPathComponent()
+            ) else {
                 throw error
             }
 
             try fileSystem.move(
                 staging,
-                to: fileSystem.resolve(
-                    url
-                )
+                to: link.destination
             )
         }
     }

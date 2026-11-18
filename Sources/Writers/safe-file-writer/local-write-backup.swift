@@ -8,6 +8,11 @@ import IO
 /// earlier backup is never overwritten; a taken name moves on to the next.
 /// Callers run after `validateCurrentState`, so the clone matches the plan's
 /// fingerprint except within the validate→clone window.
+///
+/// The clone never follows a final symlink, so a target that is a link is
+/// backed up from what it resolves to; backup names still come from the
+/// target. Costs one `fstatat` per backup (Darwin) when the target is not a
+/// link.
 enum LocalWriteBackup {
     /// `<name><suffix>` when free; otherwise, with `addTimestampIfExists`,
     /// `<name>.<timestamp>[-n]<suffix>`. Without it, the base backup is replaced
@@ -18,6 +23,9 @@ enum LocalWriteBackup {
         addTimestampIfExists: Bool,
         timestamp: String
     ) throws -> URL {
+        let source = try cloneSource(
+            of: target
+        )
         let base = target
             .deletingLastPathComponent()
             .appendingPathComponent(
@@ -26,7 +34,7 @@ enum LocalWriteBackup {
             )
 
         if try cloneIfAbsent(
-            target,
+            source,
             to: base
         ) {
             return base
@@ -39,7 +47,7 @@ enum LocalWriteBackup {
 
             do {
                 try FileSystem.default.copy(
-                    target,
+                    source,
                     to: staging
                 )
                 try FileSystem.default.replace(
@@ -58,6 +66,7 @@ enum LocalWriteBackup {
 
         return try timestamped(
             of: target,
+            source: source,
             suffix: suffix,
             timestamp: timestamp
         )
@@ -66,6 +75,22 @@ enum LocalWriteBackup {
     /// `<name>.<timestamp>[-n]<suffix>`, the first name not yet taken.
     static func timestamped(
         of target: URL,
+        suffix: String,
+        timestamp: String
+    ) throws -> URL {
+        try timestamped(
+            of: target,
+            source: cloneSource(
+                of: target
+            ),
+            suffix: suffix,
+            timestamp: timestamp
+        )
+    }
+
+    private static func timestamped(
+        of target: URL,
+        source: URL,
         suffix: String,
         timestamp: String
     ) throws -> URL {
@@ -82,7 +107,7 @@ enum LocalWriteBackup {
             )
 
             if try cloneIfAbsent(
-                target,
+                source,
                 to: candidate
             ) {
                 return candidate
@@ -101,6 +126,10 @@ enum LocalWriteBackup {
         options: SafeWriteOptions,
         timestamp: String
     ) throws -> URL {
+        let source = try cloneSource(
+            of: target
+        )
+
         for attempt in 1... {
             let stamp = attempt == 1
                 ? timestamp
@@ -115,7 +144,7 @@ enum LocalWriteBackup {
             )
 
             if try cloneIfAbsent(
-                target,
+                source,
                 to: destination
             ) {
                 try writer.pruneBackupSets(
@@ -129,6 +158,25 @@ enum LocalWriteBackup {
         }
 
         fatalError("unbounded attempt sequence ended")
+    }
+
+    /// `target` itself, or what it resolves to when its final component is a
+    /// symlink.
+    private static func cloneSource(
+        of target: URL
+    ) throws -> URL {
+        let fileSystem = FileSystem.default
+
+        guard try fileSystem.firstSymlink(
+            in: target,
+            below: target.deletingLastPathComponent()
+        ) != nil else {
+            return target
+        }
+
+        return fileSystem.resolve(
+            target
+        )
     }
 
     /// Returns false when `destination` already exists; never replaces it.

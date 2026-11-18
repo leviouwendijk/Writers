@@ -75,6 +75,43 @@ struct TestWorkspace: Sendable {
         )
     }
 
+    /// Relative link `name` → `destination`, inside the workspace.
+    func symlink(
+        _ name: String,
+        to destination: String
+    ) throws -> URL {
+        let url = file(
+            name
+        )
+
+        try FileManager.default.createSymbolicLink(
+            atPath: url.path,
+            withDestinationPath: destination
+        )
+
+        return url
+    }
+
+    func linkDestination(
+        _ url: URL
+    ) throws -> String {
+        try FileManager.default.destinationOfSymbolicLink(
+            atPath: url.path
+        )
+    }
+
+    func names(
+        in directory: URL
+    ) throws -> [String] {
+        try FileManager.default.contentsOfDirectory(
+            atPath: directory.path
+        )
+        .filter {
+            !$0.hasPrefix(".")
+        }
+        .sorted()
+    }
+
     func remove() {
         try? FileManager.default.removeItem(
             at: root
