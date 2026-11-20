@@ -14,11 +14,6 @@ let package = Package(
             name: "t_writers",
             targets: ["WritersTests"]
         ),
-
-        .executable(
-            name: "b_writers",
-            targets: ["WritersBenchmark"]
-        ),
     ],
     dependencies: [
         .package(url: "https://github.com/leviouwendijk/Difference.git", branch: "master"),
@@ -39,12 +34,6 @@ let package = Package(
                 .product(name: "Readers", package: "Readers"),
                 .product(name: "Path", package: "Path"),
                 .product(name: "Testing", package: "Testing"),
-            ]
-        ),
-        .executableTarget(
-            name: "WritersBenchmark",
-            dependencies: [
-                .product(name: "Writers", package: "Writers"),
             ]
         ),
     ]
