@@ -13,16 +13,6 @@ let package = Package(
             name: "Writers",
             targets: ["Writers"]
         ),
-
-        .executable(
-            name: "t_writers",
-            targets: ["WritersTests"]
-        ),
-
-        .executable(
-            name: "b_writers",
-            targets: ["WritersBenchmark"]
-        ),
     ],
     dependencies: [
         .package(url: "https://github.com/leviouwendijk/IO.git", branch: "master"),
@@ -30,8 +20,6 @@ let package = Package(
         .package(url: "https://github.com/leviouwendijk/Position.git", branch: "master"),
         .package(url: "https://github.com/leviouwendijk/Readers.git", branch: "master"),
         .package(url: "https://github.com/leviouwendijk/Path.git", branch: "master"),
-
-        .package(url: "https://github.com/leviouwendijk/Testing.git", branch: "master"),
     ],
     targets: [
         .target(
@@ -43,26 +31,6 @@ let package = Package(
                 .product(name: "Readers", package: "Readers"),
                 .product(name: "Path", package: "Path"),
             ],
-        ),
-        .executableTarget(
-            name: "WritersTests",
-            dependencies: [
-                "Writers",
-                .product(name: "Difference", package: "Difference"),
-                .product(name: "Position", package: "Position"),
-                .product(name: "Readers", package: "Readers"),
-                .product(name: "Path", package: "Path"),
-                .product(name: "Testing", package: "Testing"),
-            ],
-            // sources: ["WritersTestFlows"]
-            path: "Testing/WritersTests"
-        ),
-        .executableTarget(
-            name: "WritersBenchmark",
-            dependencies: [
-                "Writers",
-            ],
-            path: "Testing/WritersBenchmark"
         ),
     ]
 )
