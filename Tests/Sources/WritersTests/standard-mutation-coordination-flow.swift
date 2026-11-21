@@ -269,7 +269,8 @@ extension WritersFlowSuite {
                         .copy(from: folder, to: destination),
                         .editText(at: child, operations: [.replaceLineGuarded(1, expected: "old", with: "new")])
                     ])
-                } catch StandardMutationCoordinationError.overlapping_submission_footprints {
+                } catch StandardMutationError.nested_targets {
+                    // The planner refuses the overlap before admission.
                     refused = true
                 }
                 try Expect.true(refused, "mutation.internal_footprint_conflict")

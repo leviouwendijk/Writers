@@ -3,6 +3,8 @@ import Foundation
 public enum StandardMutationError: Error, Sendable, LocalizedError {
     case empty_entries
     case duplicate_target(URL)
+    /// Two entries of one pass touch a directory and something inside it.
+    case nested_targets(outer: URL, inner: URL)
     case target_missing(URL)
     case target_exists(URL)
     case target_not_text(URL)
@@ -27,6 +29,9 @@ public enum StandardMutationError: Error, Sendable, LocalizedError {
 
         case .duplicate_target(let target):
             return "Mutation pass contains duplicate target \(target.path). Merge same-file changes into one entry before planning."
+
+        case .nested_targets(let outer, let inner):
+            return "Mutation pass changes \(outer.path) and, in another entry, \(inner.path) inside it. Split them into separate passes: first the entries inside, then the directory."
 
         case .target_missing(let target):
             return "Mutation target is missing: \(target.path)"

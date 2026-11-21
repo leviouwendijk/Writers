@@ -478,6 +478,39 @@ public struct StandardMutationPlanner: Sendable {
                 )
             }
         }
+
+        try requireDisjointTargets(
+            entries
+        )
+    }
+
+    /// One pass cannot change a directory and something inside it through
+    /// different entries (move `Photos` and edit `Photos/a.txt`): the result
+    /// depends on order and the review cannot show it. Split the pass.
+    private func requireDisjointTargets(
+        _ entries: [StandardMutationEntry]
+    ) throws {
+        var owner: [String: Int] = [:]
+        for (index, entry) in entries.enumerated() {
+            for target in entry.targets {
+                owner[target.standardizedFileURL.path] = index
+            }
+        }
+
+        for (index, entry) in entries.enumerated() {
+            for target in entry.targets {
+                var ancestor = target.standardizedFileURL.deletingLastPathComponent()
+                while ancestor.path != "/" {
+                    if let other = owner[ancestor.path], other != index {
+                        throw StandardMutationError.nested_targets(
+                            outer: ancestor,
+                            inner: target.standardizedFileURL
+                        )
+                    }
+                    ancestor = ancestor.deletingLastPathComponent()
+                }
+            }
+        }
     }
 
     private func textDiff(
