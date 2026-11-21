@@ -197,6 +197,35 @@ public struct StandardMutationPublication: Sendable, Codable, Hashable {
 /// A reusable process-owned coordinator over the canonical mutation planner/applier.
 /// It never publishes through a separate edit writer. Staged edits share base coordinates;
 /// publication combines disjoint edits to one file into one snapshot-mode mutation entry.
+/// What left the coordinator blocked: the publication or rollback whose
+/// effects on disk are uncertain, and the entry that failed.
+public struct StandardMutationRecoveryCause: Sendable, Codable, Hashable {
+    public enum Kind: String, Sendable, Codable, Hashable {
+        case publication
+        case rollback
+    }
+
+    public let kind: Kind
+    public let publication_id: UUID
+    public let status: String
+    public let target: URL?
+    public let message: String?
+
+    public init(
+        kind: Kind,
+        publication_id: UUID,
+        status: String,
+        target: URL?,
+        message: String?
+    ) {
+        self.kind = kind
+        self.publication_id = publication_id
+        self.status = status
+        self.target = target
+        self.message = message
+    }
+}
+
 public actor StandardMutationCoordinator {
     private var participants: [UUID: Bool] = [:]
     private var submissions: [UUID: StandardMutationSubmission] = [:]
@@ -205,6 +234,7 @@ public actor StandardMutationCoordinator {
     private var rolled_back_publications: Set<UUID> = []
     private var rollback_results: [StandardMutationRollbackResult] = []
     private var blocked = false
+    private var recovery: StandardMutationRecoveryCause?
 
     public init() {}
 
@@ -240,7 +270,13 @@ public actor StandardMutationCoordinator {
     public func recover() -> Bool {
         let was_blocked = blocked
         blocked = false
+        recovery = nil
         return was_blocked
+    }
+
+    /// Why the coordinator is blocked; nil when it is not.
+    public func recovery_cause() -> StandardMutationRecoveryCause? {
+        blocked ? recovery : nil
     }
 
     /// Whether a publication with this result leaves the disk in doubt.
@@ -408,6 +444,13 @@ public actor StandardMutationCoordinator {
             // Even a failed rollback may have performed a partial side effect.
             // Owner reconciliation is mandatory before subsequent publication.
             blocked = true
+            recovery = .init(
+                kind: .rollback,
+                publication_id: publication_id,
+                status: result.status.rawValue,
+                target: result.failed?.target,
+                message: result.failed?.message
+            )
         }
         return result
     }
@@ -644,6 +687,13 @@ public actor StandardMutationCoordinator {
         // A clean failure (snapshot drift, a refused rename) left nothing behind.
         if Self.requires_recovery(after: result) {
             blocked = true
+            recovery = .init(
+                kind: .publication,
+                publication_id: result.id,
+                status: result.status.rawValue,
+                target: result.failed?.target,
+                message: result.failed?.message
+            )
         }
         let publication = StandardMutationPublication(
             result: result,
