@@ -19,22 +19,36 @@ public enum StandardMutationStatus: String, Sendable, Codable, Hashable, CaseIte
     case rolled_back
 }
 
+/// What a failed entry may have left on disk.
+public enum StandardMutationFailureEffect: String, Sendable, Codable, Hashable, CaseIterable {
+    /// The entry failed before changing anything: its snapshot check failed, or
+    /// its one atomic operation (a native rename) was refused. Parent directories
+    /// the entry was allowed to create may remain, empty.
+    case none
+    /// The failing operation is not one atomic step (copy, recursive delete,
+    /// text write, cross-volume move) and may have stopped halfway.
+    case uncertain
+}
+
 public struct StandardMutationFailure: Sendable, Codable, Hashable {
     public let entryID: UUID
     public let index: Int
     public let target: URL
     public let message: String
+    public let effect: StandardMutationFailureEffect
 
     public init(
         entryID: UUID,
         index: Int,
         target: URL,
-        message: String
+        message: String,
+        effect: StandardMutationFailureEffect = .uncertain
     ) {
         self.entryID = entryID
         self.index = index
         self.target = target.standardizedFileURL
         self.message = message
+        self.effect = effect
     }
 }
 
@@ -82,8 +96,11 @@ public struct StandardMutationApplier: Sendable {
         var failed: StandardMutationFailure?
 
         for entry in plan.entries {
+            var started = false
+
             do {
                 try entry.requireCurrent()
+                started = true
 
                 if let record = try apply(
                     entry,
@@ -107,7 +124,13 @@ public struct StandardMutationApplier: Sendable {
                     target: entry.target,
                     message: String(
                         describing: error
-                    )
+                    ),
+                    effect: started
+                        ? Self.failureEffect(
+                            of: entry,
+                            error: error
+                        )
+                        : .none
                 )
 
                 break
@@ -159,6 +182,23 @@ public struct StandardMutationApplier: Sendable {
             rollback: rollback,
             automaticRollback: automaticRollback
         )
+    }
+
+    /// A move through IO's native path is one rename: when it throws a
+    /// `FileSystemError`, nothing moved. Any other error (Foundation's
+    /// cross-volume copy-and-delete) or any other kind of entry may have
+    /// stopped halfway.
+    private static func failureEffect(
+        of planned: StandardPlannedMutation,
+        error: any Error
+    ) -> StandardMutationFailureEffect {
+        guard case .move = planned.entry,
+              error is FileSystemError
+        else {
+            return .uncertain
+        }
+
+        return .none
     }
 
     private func apply(

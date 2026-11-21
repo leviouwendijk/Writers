@@ -469,6 +469,59 @@ extension WritersFlowSuite {
                 try Expect.true(blocked, "rollback.no_submissions_until_reconciled")
             }
 
+            Step("a refused move leaves the disk unchanged and does not block the coordinator") {
+                let workspace = try TestWorkspace("mutation-coordination-clean-failure")
+                defer { workspace.remove() }
+                let source = workspace.file("from.txt")
+                let destination = workspace.file("missing-parent").appendingPathComponent("to.txt")
+                let other = workspace.file("other.txt")
+                _ = try StandardWriter(source).write("kept\n", options: .overwriteWithoutBackup)
+                let coordinator = StandardMutationCoordinator()
+                let participant = await coordinator.participant(name: "organizer")
+                _ = try await participant.submit(.move(.init(
+                    source: source,
+                    destination: destination,
+                    createParentDirectories: false
+                )))
+                let failed = try Expect.notNil(try await coordinator.publish(), "clean.publication")
+                try Expect.equal(failed.result.status, .failed, "clean.status")
+                try Expect.equal(failed.result.failed?.effect, StandardMutationFailureEffect.none, "clean.effect")
+                try Expect.false(await coordinator.requires_recovery(), "clean.not_blocked")
+                try Expect.equal(try workspace.read(source), "kept\n", "clean.source_kept")
+                _ = try await participant.submit(.createText(at: other, content: "next\n"))
+                let next = try Expect.notNil(try await coordinator.publish(), "clean.next_publication")
+                try Expect.equal(next.result.status, .applied, "clean.next_applied")
+            }
+
+            Step("an uncertain failure blocks until the owner recovers") {
+                let failure = StandardMutationFailure(
+                    entryID: UUID(), index: 1, target: URL(fileURLWithPath: "/tmp/x"), message: "copy stopped"
+                )
+                try Expect.equal(failure.effect, .uncertain, "uncertain.default")
+                let workspace = try TestWorkspace("mutation-coordination-recover")
+                defer { workspace.remove() }
+                let file = workspace.file("shared.swift")
+                _ = try StandardWriter(file).write("one\ntwo\n", options: .overwriteWithoutBackup)
+                let coordinator = StandardMutationCoordinator()
+                let participant = await coordinator.participant(name: "one")
+                _ = try await participant.submit(.editText(
+                    at: file, operations: [.replaceLineGuarded(1, expected: "one", with: "ONE")]
+                ))
+                let first = try Expect.notNil(try await coordinator.publish(), "recover.first")
+                _ = try await participant.submit(.editText(
+                    at: file, operations: [.replaceLineGuarded(2, expected: "two", with: "TWO")]
+                ))
+                _ = try Expect.notNil(try await coordinator.publish(), "recover.second")
+                _ = try await coordinator.rollback(publication_id: first.result.id)
+                try Expect.true(await coordinator.requires_recovery(), "recover.blocked")
+                try Expect.true(await coordinator.recover(), "recover.was_blocked")
+                try Expect.false(await coordinator.requires_recovery(), "recover.unblocked")
+                _ = try await participant.submit(.replaceText(at: file, content: "reconciled\n"))
+                let after = try Expect.notNil(try await coordinator.publish(), "recover.publication")
+                try Expect.equal(after.result.status, .applied, "recover.applied")
+                try Expect.equal(try workspace.read(file), "reconciled\n", "recover.content")
+            }
+
             Step("staged inspection composes disjoint changes without publishing") {
                 let workspace = try TestWorkspace("mutation-coordination-staged")
                 defer { workspace.remove() }

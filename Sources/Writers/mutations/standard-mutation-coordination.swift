@@ -219,8 +219,8 @@ public actor StandardMutationCoordinator {
     }
 
     /// Owner-side committed publications and rollback outcomes are durable values.
-    /// If recovery is required, reconstruct the coordinator only after the owner
-    /// has reconciled the filesystem; do not silently unlock uncertain effects.
+    /// If recovery is required, call `recover()` only after the owner has
+    /// reconciled the filesystem; do not silently unlock uncertain effects.
     public func publication(_ id: UUID) -> StandardMutationPublication? {
         publications[id]
     }
@@ -231,6 +231,30 @@ public actor StandardMutationCoordinator {
 
     public func requires_recovery() -> Bool {
         blocked
+    }
+
+    /// Owner-only: unblock after the owner has reconciled the filesystem with
+    /// the failed publication. The journal keeps the failed submission for
+    /// audit; participants stay valid. Returns whether it was blocked.
+    @discardableResult
+    public func recover() -> Bool {
+        let was_blocked = blocked
+        blocked = false
+        return was_blocked
+    }
+
+    /// Whether a publication with this result leaves the disk in doubt.
+    public static func requires_recovery(
+        after result: StandardMutationResult
+    ) -> Bool {
+        switch result.status {
+        case .applied:
+            return false
+        case .partial:
+            return true
+        case .failed, .rolled_back:
+            return result.failed?.effect != StandardMutationFailureEffect.none
+        }
     }
 
     /// Explicit lifecycle observable by the host; does not expose capabilities
@@ -615,9 +639,10 @@ public actor StandardMutationCoordinator {
             }
             submissions[submission.id] = submission.with_state(state)
         }
-        // A failed or partial application may have left a filesystem side effect
-        // before returning an error. Require owner-managed recovery before reuse.
-        if result.status == .partial || result.status == .failed {
+        // Block only when the disk may differ from both the plan and its rollback:
+        // a partial application, or a failing entry that may have stopped halfway.
+        // A clean failure (snapshot drift, a refused rename) left nothing behind.
+        if Self.requires_recovery(after: result) {
             blocked = true
         }
         let publication = StandardMutationPublication(
