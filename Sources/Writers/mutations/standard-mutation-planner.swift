@@ -336,7 +336,18 @@ public struct StandardMutationPlanner: Sendable {
             )
         }
 
-        guard !destination.existed else {
+        // On a case-insensitive volume (default APFS, HFS+, exFAT, FAT) a
+        // case-only rename finds the source under its new spelling. That is
+        // the source itself, not a collision.
+        let alias = destination.existed
+            && Self.isAlias(
+                entry.source,
+                of: entry.destination,
+                source: source,
+                destination: destination
+            )
+
+        guard !destination.existed || alias else {
             throw StandardMutationError.target_exists(
                 entry.destination
             )
@@ -364,9 +375,11 @@ public struct StandardMutationPlanner: Sendable {
                     requiredSourceState: source.relocating(
                         to: entry.destination
                     ),
-                    requiredDestinationState: .missing(
-                        at: entry.source
-                    ),
+                    // After a case-only rename the old spelling still
+                    // resolves to the moved object.
+                    requiredDestinationState: alias
+                        ? source.relocating(to: entry.source)
+                        : .missing(at: entry.source),
                     createParentDirectories: entry.createParentDirectories
                 )
             )
@@ -417,6 +430,31 @@ public struct StandardMutationPlanner: Sendable {
             ),
             warnings: warningCodes
         )
+    }
+
+    /// Whether `destination` is another spelling of `source`: the same object
+    /// (device and file ID) under a name equal to the source's when case and
+    /// Unicode normalization are ignored. The name check keeps two hard links
+    /// with different names from counting as one.
+    static func isAlias(
+        _ sourceURL: URL,
+        of destinationURL: URL,
+        source: StandardMoveResourceState,
+        destination: StandardMoveResourceState
+    ) -> Bool {
+        guard let identity = source.identity,
+              identity == destination.identity
+        else {
+            return false
+        }
+
+        let sourcePath = sourceURL.standardizedFileURL.path
+            .precomposedStringWithCanonicalMapping
+        let destinationPath = destinationURL.standardizedFileURL.path
+            .precomposedStringWithCanonicalMapping
+
+        return sourcePath != destinationPath
+            && sourcePath.caseInsensitiveCompare(destinationPath) == .orderedSame
     }
 
     private func requireUniqueTargets(

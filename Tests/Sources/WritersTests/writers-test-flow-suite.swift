@@ -50,6 +50,7 @@ enum WritersFlowSuite: TestFlowRegistry {
         moveMutationFlow,
         workspaceWriterFlow,
         capacityFlow,
+        caseOnlyMoveFlow,
     ]
 }
 
