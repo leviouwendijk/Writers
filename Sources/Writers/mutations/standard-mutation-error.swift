@@ -15,6 +15,10 @@ public enum StandardMutationError: Error, Sendable, LocalizedError {
         expected: StandardContentFingerprint?,
         actual: StandardContentFingerprint?
     )
+    /// A file is larger than the destination volume can hold (FAT32: 4 GiB − 1).
+    case exceeds_file_size_limit(source: URL, destination: URL, size: Int64, limit: Int64)
+    /// The pass writes more to a volume than it has free.
+    case insufficient_space(volume: URL, needed: Int64, available: Int64)
 
     public var errorDescription: String? {
         switch self {
@@ -50,6 +54,18 @@ public enum StandardMutationError: Error, Sendable, LocalizedError {
             let actualText = actual.map(String.init(describing:)) ?? "missing"
 
             return "Mutation drift detected for \(target.path). Expected \(expectedText), found \(actualText)."
+
+        case .exceeds_file_size_limit(let source, let destination, let size, let limit):
+            return "\(source.path) holds a file of \(Self.bytes(size)); the volume of \(destination.path) holds files up to \(Self.bytes(limit)) (FAT32 limit?). Nothing was written."
+
+        case .insufficient_space(let volume, let needed, let available):
+            return "This pass writes \(Self.bytes(needed)) to the volume of \(volume.path), which has \(Self.bytes(available)) free. Nothing was written."
         }
+    }
+
+    private static func bytes(
+        _ value: Int64
+    ) -> String {
+        ByteCountFormatter.string(fromByteCount: value, countStyle: .binary)
     }
 }

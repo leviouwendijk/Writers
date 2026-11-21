@@ -25,6 +25,10 @@ public struct StandardMutationPlanner: Sendable {
             )
         }
 
+        try StandardMutationCapacity.require(
+            entries
+        )
+
         return try .init(
             entries: planned,
             metadata: metadata

@@ -49,6 +49,7 @@ enum WritersFlowSuite: TestFlowRegistry {
         writerFacadeFlow,
         moveMutationFlow,
         workspaceWriterFlow,
+        capacityFlow,
     ]
 }
 

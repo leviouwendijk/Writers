@@ -185,20 +185,29 @@ public struct StandardMutationApplier: Sendable {
     }
 
     /// A move through IO's native path is one rename: when it throws a
-    /// `FileSystemError`, nothing moved. Any other error (Foundation's
-    /// cross-volume copy-and-delete) or any other kind of entry may have
-    /// stopped halfway.
+    /// `FileSystemError`, nothing moved. A copy that throws
+    /// `FileSystemError(.copy)` left no destination: IO removes what a failed
+    /// copy created, and reports a failed removal as `.remove` instead. Any
+    /// other error (Foundation's cross-volume move) or any other kind of entry
+    /// may have stopped halfway.
     private static func failureEffect(
         of planned: StandardPlannedMutation,
         error: any Error
     ) -> StandardMutationFailureEffect {
-        guard case .move = planned.entry,
-              error is FileSystemError
-        else {
+        guard let failure = error as? FileSystemError else {
             return .uncertain
         }
 
-        return .none
+        switch planned.entry {
+        case .move:
+            return .none
+        case .copy:
+            return failure.operation == .copy || failure.operation == .create_directory
+                ? .none
+                : .uncertain
+        case .create_text, .replace_text, .edit_text, .delete:
+            return .uncertain
+        }
     }
 
     private func apply(
